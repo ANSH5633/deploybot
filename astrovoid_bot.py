@@ -778,7 +778,7 @@ async def setup_container(container_id, status_msg, memory, username, vps_id=Non
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
-bot = AstroVoid HostBot(command_prefix='/', intents=intents, help_command=None)
+bot = AstroVoidHostBot(command_prefix='/', intents=intents, help_command=None)
 
 @bot.event
 async def on_ready():
