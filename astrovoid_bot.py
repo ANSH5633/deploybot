@@ -366,7 +366,7 @@ class Database:
         self.conn.close()
 
 # Initialize bot with command prefix '/'
-class AstroVoid HostBot(commands.Bot):
+class AstroVoidHostBot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.db = Database(DB_FILE)
