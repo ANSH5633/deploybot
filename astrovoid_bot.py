@@ -36,11 +36,11 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('astrovoid_bot.log'),
+        logging.FileHandler('eaglenode_bot.log'),
         logging.StreamHandler()
     ]
 )
-logger = logging.getLogger('AstroVoid HostBot')
+logger = logging.getLogger('EagleNodeBot')
 
 # Load environment variables
 load_dotenv()
@@ -49,14 +49,14 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 ADMIN_IDS = {int(id_) for id_ in os.getenv('ADMIN_IDS', '1405778722732376176').split(',') if id_.strip()}
 ADMIN_ROLE_ID = int(os.getenv('ADMIN_ROLE_ID', '1405778722732376176'))
-WATERMARK = "AstroVoid Host VPS Service"
-WELCOME_MESSAGE = "Welcome To AstroVoid Host! Get Started With Us!"
+WATERMARK = "🦅 EagleNode VPS Service"
+WELCOME_MESSAGE = "Welcome To EagleNode! Get Started With Us!"
 MAX_VPS_PER_USER = int(os.getenv('MAX_VPS_PER_USER', '3'))
 DEFAULT_OS_IMAGE = os.getenv('DEFAULT_OS_IMAGE', 'ubuntu:22.04')
 DOCKER_NETWORK = os.getenv('DOCKER_NETWORK', 'bridge')
 MAX_CONTAINERS = int(os.getenv('MAX_CONTAINERS', '100'))
-DB_FILE = 'astrovoid.db'
-BACKUP_FILE = 'astrovoid_backup.pkl'
+DB_FILE = 'eaglenode.db'
+BACKUP_FILE = 'eaglenode_backup.pkl'
 
 # Known miner process names/patterns
 MINER_PATTERNS = [
@@ -64,14 +64,14 @@ MINER_PATTERNS = [
     'minerd', 'cpuminer', 'cryptonight', 'stratum', 'pool'
 ]
 
-# Dockerfile template for custom images
+# 🐳 Dockerfile template for custom images
 DOCKERFILE_TEMPLATE = """
 FROM {base_image}
 
 # Prevent prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install systemd, sudo, SSH, Docker and other essential packages
+# Install systemd, sudo, 🔐 SSH, 🐳 Docker and other essential packages
 RUN apt-get update && \\
     apt-get install -y systemd systemd-sysv dbus sudo \\
                        curl gnupg2 apt-transport-https ca-certificates \\
@@ -87,20 +87,20 @@ RUN useradd -m -s /bin/bash {username} && \\
     echo "{username}:{user_password}" | chpasswd && \\
     usermod -aG sudo {username}
 
-# Enable SSH login
+# Enable 🔐 SSH login
 RUN mkdir /var/run/sshd && \\
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \\
-    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+    sed -i 's/#🔑 PasswordAuthentication yes/🔑 PasswordAuthentication yes/' /etc/ssh/sshd_config
 
 # Enable services on boot
 RUN systemctl enable ssh && \\
     systemctl enable docker
 
-# AstroVoid Host customization
+# EagleNode customization
 RUN echo '{welcome_message}' > /etc/motd && \\
     echo 'echo "{welcome_message}"' >> /home/{username}/.bashrc && \\
     echo '{watermark}' > /etc/machine-info && \\
-    echo 'astrovoidhost-{vps_id}' > /etc/hostname
+    echo 'eaglenode-{vps_id}' > /etc/hostname
 
 # Install additional useful packages
 RUN apt-get update && \\
@@ -359,14 +359,14 @@ class Database:
             self.conn.commit()
             return True
         except Exception as e:
-            logger.error(f"Error restoring data: {e}")
+            logger.error(f"❌ Error restoring data: {e}")
             return False
 
     def close(self):
         self.conn.close()
 
 # Initialize bot with command prefix '/'
-class AstroVoidHostBot(commands.Bot):
+class EagleNodeBot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.db = Database(DB_FILE)
@@ -385,7 +385,7 @@ class AstroVoidHostBot(commands.Bot):
         self.session = aiohttp.ClientSession()
         try:
             self.docker_client = docker.from_env()
-            logger.info("Docker client initialized successfully")
+            logger.info("🐳 Docker client initialized successfully")
             self.loop.create_task(self.update_system_stats())
             self.loop.create_task(self.anti_miner_monitor())
             # Reconnect to existing containers
@@ -393,7 +393,7 @@ class AstroVoidHostBot(commands.Bot):
             # Restore persistent views
             await self.restore_persistent_views()
         except Exception as e:
-            logger.error(f"Failed to initialize Docker client: {e}")
+            logger.error(f"Failed to initialize 🐳 Docker client: {e}")
             self.docker_client = None
 
     async def reconnect_containers(self):
@@ -409,10 +409,10 @@ class AstroVoidHostBot(commands.Bot):
                         container.start()
                     logger.info(f"Reconnected and started container for VPS {vps['vps_id']}")
                 except docker.errors.NotFound:
-                    logger.warning(f"Container {vps['container_id']} not found, removing from data")
+                    logger.warning(f"📦 Container {vps['container_id']} not found, removing from data")
                     self.db.remove_vps(token)
                 except Exception as e:
-                    logger.error(f"Error reconnecting container {vps['vps_id']}: {e}")
+                    logger.error(f"❌ Error reconnecting container {vps['vps_id']}: {e}")
 
     async def restore_persistent_views(self):
         """Restore persistent views after restart"""
@@ -449,9 +449,9 @@ class AstroVoidHostBot(commands.Bot):
                                     pass
                                 break
                     except Exception as e:
-                        logger.error(f"Error checking VPS {vps['vps_id']} for mining: {e}")
+                        logger.error(f"❌ Error checking VPS {vps['vps_id']} for mining: {e}")
             except Exception as e:
-                logger.error(f"Error in anti_miner_monitor: {e}")
+                logger.error(f"❌ Error in anti_miner_monitor: {e}")
             await asyncio.sleep(300)  # Check every 5 minutes
 
     async def update_system_stats(self):
@@ -459,16 +459,16 @@ class AstroVoidHostBot(commands.Bot):
         await self.wait_until_ready()
         while not self.is_closed():
             try:
-                # CPU usage
+                # ⚙️ CPU usage
                 cpu_percent = psutil.cpu_percent(interval=1)
                 
-                # Memory usage
+                # 💾 Memory usage
                 mem = psutil.virtual_memory()
                 
-                # Disk usage
+                # 💿 Disk usage
                 disk = psutil.disk_usage('/')
                 
-                # Network IO
+                # 🌐 Network IO
                 net_io = psutil.net_io_counters()
                 
                 self.system_stats = {
@@ -484,7 +484,7 @@ class AstroVoidHostBot(commands.Bot):
                     'last_updated': time.time()
                 }
             except Exception as e:
-                logger.error(f"Error updating system stats: {e}")
+                logger.error(f"❌ Error updating system stats: {e}")
             await asyncio.sleep(30)
 
     async def close(self):
@@ -500,11 +500,11 @@ def generate_token():
     return ''.join(random.choices(string.ascii_letters + string.digits, k=24))
 
 def generate_vps_id():
-    """Generate a unique VPS ID"""
+    """Generate a unique 🆔 VPS ID"""
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
 
 def generate_ssh_password():
-    """Generate a random SSH password"""
+    """Generate a random 🔐 SSH password"""
     chars = string.ascii_letters + string.digits + "!@#$%^&*"
     return ''.join(random.choices(chars, k=16))
 
@@ -523,7 +523,7 @@ def has_admin_role(ctx):
     return any(role.id == ADMIN_ROLE_ID for role in roles)
 
 async def capture_ssh_session_line(process):
-    """Capture the SSH session line from tmate output"""
+    """Capture the 🔐 SSH session line from tmate output"""
     try:
         while True:
             output = await process.stdout.readline()
@@ -534,11 +534,11 @@ async def capture_ssh_session_line(process):
                 return output.split("ssh session:")[1].strip()
         return None
     except Exception as e:
-        logger.error(f"Error capturing SSH session: {e}")
+        logger.error(f"❌ Error capturing 🔐 SSH session: {e}")
         return None
 
 async def run_docker_command(container_id, command, timeout=120):
-    """Run a Docker command asynchronously with timeout"""
+    """Run a 🐳 Docker command asynchronously with timeout"""
     try:
         process = await asyncio.create_subprocess_exec(
             "docker", "exec", container_id, *command,
@@ -550,11 +550,11 @@ async def run_docker_command(container_id, command, timeout=120):
             if process.returncode != 0:
                 raise Exception(f"Command failed: {stderr.decode()}")
             return True, stdout.decode()
-        except asyncio.TimeoutError:
+        except asyncio.Timeout❌ Error:
             process.kill()
             raise Exception(f"Command timed out after {timeout} seconds")
     except Exception as e:
-        logger.error(f"Error running Docker command: {e}")
+        logger.error(f"❌ Error running 🐳 Docker command: {e}")
         return False, str(e)
 
 async def kill_apt_processes(container_id):
@@ -566,7 +566,7 @@ async def kill_apt_processes(container_id):
         await asyncio.sleep(2)
         return success
     except Exception as e:
-        logger.error(f"Error killing apt processes: {e}")
+        logger.error(f"❌ Error killing apt processes: {e}")
         return False
 
 async def wait_for_apt_lock(container_id, status_msg):
@@ -587,24 +587,24 @@ async def wait_for_apt_lock(container_id, status_msg):
                 return True
                 
             if isinstance(status_msg, discord.Interaction):
-                await status_msg.followup.send(f"ߔ Waiting for package manager to be ready... (Attempt {attempt + 1}/{max_attempts})", ephemeral=True)
+                await status_msg.followup.send(f"🔄 Waiting for package manager to be ready... (Attempt {attempt + 1}/{max_attempts})", ephemeral=True)
             else:
-                await status_msg.edit(content=f"ߔ Waiting for package manager to be ready... (Attempt {attempt + 1}/{max_attempts})")
+                await status_msg.edit(content=f"🔄 Waiting for package manager to be ready... (Attempt {attempt + 1}/{max_attempts})")
             await asyncio.sleep(5)
         except Exception as e:
-            logger.error(f"Error checking apt lock: {e}")
+            logger.error(f"❌ Error checking apt lock: {e}")
             await asyncio.sleep(5)
     
     return False
 
 async def build_custom_image(vps_id, username, root_password, user_password, base_image=DEFAULT_OS_IMAGE):
-    """Build a custom Docker image using our template"""
+    """Build a custom 🐳 Docker image using our template"""
     try:
-        # Create a temporary directory for the Dockerfile
+        # Create a temporary directory for the 🐳 Dockerfile
         temp_dir = f"temp_dockerfiles/{vps_id}"
         os.makedirs(temp_dir, exist_ok=True)
         
-        # Generate Dockerfile content
+        # Generate 🐳 Dockerfile content
         dockerfile_content = DOCKERFILE_TEMPLATE.format(
             base_image=base_image,
             root_password=root_password,
@@ -615,13 +615,13 @@ async def build_custom_image(vps_id, username, root_password, user_password, bas
             vps_id=vps_id
         )
         
-        # Write Dockerfile
-        dockerfile_path = os.path.join(temp_dir, "Dockerfile")
+        # Write 🐳 Dockerfile
+        dockerfile_path = os.path.join(temp_dir, "🐳 Dockerfile")
         with open(dockerfile_path, 'w') as f:
             f.write(dockerfile_content)
         
         # Build the image
-        image_tag = f"astrovoidhost/{vps_id.lower()}:latest"
+        image_tag = f"eaglenode/{vps_id.lower()}:latest"
         build_process = await asyncio.create_subprocess_exec(
             "docker", "build", "-t", image_tag, temp_dir,
             stdout=asyncio.subprocess.PIPE,
@@ -635,7 +635,7 @@ async def build_custom_image(vps_id, username, root_password, user_password, bas
         
         return image_tag
     except Exception as e:
-        logger.error(f"Error building custom image: {e}")
+        logger.error(f"❌ Error building custom image: {e}")
         raise
     finally:
         # Clean up temporary directory
@@ -643,35 +643,35 @@ async def build_custom_image(vps_id, username, root_password, user_password, bas
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
         except Exception as e:
-            logger.error(f"Error cleaning up temp directory: {e}")
+            logger.error(f"❌ Error cleaning up temp directory: {e}")
 
 async def setup_container(container_id, status_msg, memory, username, vps_id=None, use_custom_image=False):
-    """Enhanced container setup with AstroVoid Host customization"""
+    """Enhanced container setup with EagleNode customization"""
     try:
         # Ensure container is running
         if isinstance(status_msg, discord.Interaction):
-            await status_msg.followup.send("ߔ Checking container status...", ephemeral=True)
+            await status_msg.followup.send("🔍 Checking container status...", ephemeral=True)
         else:
-            await status_msg.edit(content="ߔ Checking container status...")
+            await status_msg.edit(content="🔍 Checking container status...")
             
         container = bot.docker_client.containers.get(container_id)
         if container.status != "running":
             if isinstance(status_msg, discord.Interaction):
-                await status_msg.followup.send("ߚ Starting container...", ephemeral=True)
+                await status_msg.followup.send("🚀 Starting container...", ephemeral=True)
             else:
-                await status_msg.edit(content="ߚ Starting container...")
+                await status_msg.edit(content="🚀 Starting container...")
             container.start()
             await asyncio.sleep(5)
 
-        # Generate SSH password
+        # Generate 🔐 SSH password
         ssh_password = generate_ssh_password()
         
         # Install tmate and other required packages
         if not use_custom_image:
             if isinstance(status_msg, discord.Interaction):
-                await status_msg.followup.send("ߓ Installing required packages...", ephemeral=True)
+                await status_msg.followup.send("📦 Installing required packages...", ephemeral=True)
             else:
-                await status_msg.edit(content="ߓ Installing required packages...")
+                await status_msg.edit(content="📦 Installing required packages...")
                 
             # Update package list
             success, output = await run_docker_command(container_id, ["apt-get", "update"])
@@ -687,11 +687,11 @@ async def setup_container(container_id, status_msg, memory, username, vps_id=Non
             if not success:
                 raise Exception(f"Failed to install packages: {output}")
 
-        # Setup SSH
+        # Setup 🔐 SSH
         if isinstance(status_msg, discord.Interaction):
-            await status_msg.followup.send("ߔ Configuring SSH access...", ephemeral=True)
+            await status_msg.followup.send("🔐 Configuring 🔐 SSH access...", ephemeral=True)
         else:
-            await status_msg.edit(content="ߔ Configuring SSH access...")
+            await status_msg.edit(content="🔐 Configuring 🔐 SSH access...")
             
         # Create user and set password (if not using custom image)
         if not use_custom_image:
@@ -700,7 +700,7 @@ async def setup_container(container_id, status_msg, memory, username, vps_id=Non
                 f"echo '{username}:{ssh_password}' | chpasswd",
                 f"usermod -aG sudo {username}",
                 "sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config",
-                "sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config",
+                "sed -i 's/#🔑 PasswordAuthentication yes/🔑 PasswordAuthentication yes/' /etc/ssh/sshd_config",
                 "service ssh restart"
             ]
             
@@ -709,11 +709,11 @@ async def setup_container(container_id, status_msg, memory, username, vps_id=Non
                 if not success:
                     raise Exception(f"Failed to setup user: {output}")
 
-        # Set AstroVoid Host customization
+        # Set EagleNode customization
         if isinstance(status_msg, discord.Interaction):
-            await status_msg.followup.send("ߎ Setting up AstroVoid Host customization...", ephemeral=True)
+            await status_msg.followup.send("🎨 Setting up EagleNode customization...", ephemeral=True)
         else:
-            await status_msg.edit(content="ߎ Setting up AstroVoid Host customization...")
+            await status_msg.edit(content="🎨 Setting up EagleNode customization...")
             
         # Create welcome message file
         welcome_cmd = f"echo '{WELCOME_MESSAGE}' > /etc/motd && echo 'echo \"{WELCOME_MESSAGE}\"' >> /home/{username}/.bashrc"
@@ -724,7 +724,7 @@ async def setup_container(container_id, status_msg, memory, username, vps_id=Non
         # Set hostname and watermark
         if not vps_id:
             vps_id = generate_vps_id()
-        hostname_cmd = f"echo 'astrovoidhost-{vps_id}' > /etc/hostname && hostname astrovoidhost-{vps_id}"
+        hostname_cmd = f"echo 'eaglenode-{vps_id}' > /etc/hostname && hostname eaglenode-{vps_id}"
         success, output = await run_docker_command(container_id, ["bash", "-c", hostname_cmd])
         if not success:
             raise Exception(f"Failed to set hostname: {output}")
@@ -761,9 +761,9 @@ async def setup_container(container_id, status_msg, memory, username, vps_id=Non
                 logger.warning(f"Security setup command failed: {cmd} - {output}")
 
         if isinstance(status_msg, discord.Interaction):
-            await status_msg.followup.send("✅ AstroVoid Host VPS setup completed successfully!", ephemeral=True)
+            await status_msg.followup.send("✅ 🦅 EagleNode VPS setup completed successfully!", ephemeral=True)
         else:
-            await status_msg.edit(content="✅ AstroVoid Host VPS setup completed successfully!")
+            await status_msg.edit(content="✅ 🦅 EagleNode VPS setup completed successfully!")
             
         return True, ssh_password, vps_id
     except Exception as e:
@@ -778,7 +778,7 @@ async def setup_container(container_id, status_msg, memory, username, vps_id=Non
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
-bot = AstroVoidHostBot(command_prefix='/', intents=intents, help_command=None)
+bot = EagleNodeBot(command_prefix='/', intents=intents, help_command=None)
 
 @bot.event
 async def on_ready():
@@ -794,22 +794,22 @@ async def on_ready():
                         container.start()
                         logger.info(f"Started container for VPS {vps['vps_id']}")
                 except docker.errors.NotFound:
-                    logger.warning(f"Container {vps['container_id']} not found")
+                    logger.warning(f"📦 Container {vps['container_id']} not found")
                 except Exception as e:
-                    logger.error(f"Error starting container: {e}")
+                    logger.error(f"❌ Error starting container: {e}")
     
     try:
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="AstroVoid Host Vps"))
+        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="EAGLENODE VPS"))
         synced_commands = await bot.tree.sync()
         logger.info(f"Synced {len(synced_commands)} slash commands")
     except Exception as e:
-        logger.error(f"Error syncing slash commands: {e}")
+        logger.error(f"❌ Error syncing slash commands: {e}")
 
 @bot.hybrid_command(name='help', description='Show all available commands')
 async def show_commands(ctx):
     """Show all available commands"""
     try:
-        embed = discord.Embed(title="ߤ AstroVoid Host VPS Bot Commands", color=discord.Color.blue())
+        embed = discord.Embed(title="🤖 🦅 EagleNode VPS Bot Commands", color=discord.Color.blue())
         
         # User commands
         embed.add_field(name="User Commands", value="""
@@ -820,7 +820,7 @@ async def show_commands(ctx):
 `/manage_vps <vps_id>` - Manage your VPS
 `/transfer_vps <vps_id> <user>` - Transfer VPS ownership
 `/vps_stats <vps_id>` - Show VPS resource usage
-`/change_ssh_password <vps_id>` - Change SSH password
+`/change_ssh_password <vps_id>` - Change 🔐 SSH password
 `/vps_shell <vps_id>` - Get shell access to your VPS
 `/vps_console <vps_id>` - Get direct console access to your VPS
 `/vps_usage` - Show your VPS usage statistics
@@ -834,7 +834,7 @@ async def show_commands(ctx):
 `/admin_stats` - Show system statistics
 `/cleanup_vps` - Cleanup inactive VPS instances
 `/add_admin <user>` - Add a new admin
-`/remove_admin <user>` - Remove an admin (Owner only)
+`/remove_admin <user>` - Remove an admin (👑 Owner only)
 `/list_admins` - List all admin users
 `/system_info` - Show detailed system information
 `/container_limit <max>` - Set maximum container limit
@@ -850,12 +850,12 @@ async def show_commands(ctx):
 `/list_banned` - List banned users
 `/backup_data` - Backup all data
 `/restore_data` - Restore from backup
-`/reinstall_bot` - Reinstall the bot (Owner only)
+`/reinstall_bot` - Reinstall the bot (👑 Owner only)
 """, inline=False)
         
         await ctx.send(embed=embed)
     except Exception as e:
-        logger.error(f"Error in show_commands: {e}")
+        logger.error(f"❌ Error in show_commands: {e}")
         await ctx.send("❌ An error occurred while processing your request.")
 
 @bot.hybrid_command(name='add_admin', description='Add a new admin (Admin only)')
@@ -871,12 +871,12 @@ async def add_admin(ctx, user: discord.User):
     bot.db.add_admin(user.id)
     await ctx.send(f"✅ {user.mention} has been added as an admin!", ephemeral=True)
 
-@bot.hybrid_command(name='remove_admin', description='Remove an admin (Owner only)')
+@bot.hybrid_command(name='remove_admin', description='Remove an admin (👑 Owner only)')
 @app_commands.describe(
     user="User to remove from admin"
 )
 async def remove_admin(ctx, user: discord.User):
-    """Remove an admin user (Owner only)"""
+    """Remove an admin user (👑 Owner only)"""
     if ctx.author.id != 1405778722732376176:  # Only the owner can remove admins
         await ctx.send("❌ Only the owner can remove admins!", ephemeral=True)
         return
@@ -918,12 +918,12 @@ async def list_admins(ctx):
 
 @bot.hybrid_command(name='create_vps', description='Create a new VPS (Admin only)')
 @app_commands.describe(
-    memory="Memory in GB",
-    cpu="CPU cores",
-    disk="Disk space in GB",
+    memory="💾 Memory in GB",
+    cpu="⚙️ CPU cores",
+    disk="💿 Disk space in GB",
     owner="User who will own the VPS",
     os_image="OS image to use",
-    use_custom_image="Use custom AstroVoid Host image (recommended)"
+    use_custom_image="Use custom EagleNode image (recommended)"
 )
 async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: discord.Member, 
                            os_image: str = DEFAULT_OS_IMAGE, use_custom_image: bool = True):
@@ -941,19 +941,19 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
         return
 
     if not bot.docker_client:
-        await ctx.send("❌ Docker is not available. Please contact the administrator.", ephemeral=True)
+        await ctx.send("❌ 🐳 Docker is not available. Please contact the administrator.", ephemeral=True)
         return
 
     try:
         # Validate inputs
         if memory < 1 or memory > 512:
-            await ctx.send("❌ Memory must be between 1GB and 512GB", ephemeral=True)
+            await ctx.send("❌ 💾 Memory must be between 1GB and 512GB", ephemeral=True)
             return
         if cpu < 1 or cpu > 32:
-            await ctx.send("❌ CPU cores must be between 1 and 32", ephemeral=True)
+            await ctx.send("❌ ⚙️ CPU cores must be between 1 and 32", ephemeral=True)
             return
         if disk < 10 or disk > 1000:
-            await ctx.send("❌ Disk space must be between 10GB and 1000GB", ephemeral=True)
+            await ctx.send("❌ 💿 Disk space must be between 10GB and 1000GB", ephemeral=True)
             return
 
         # Check if we've reached container limit
@@ -967,7 +967,7 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
             await ctx.send(f"❌ {owner.mention} already has the maximum number of VPS instances ({bot.db.get_setting('max_vps_per_user')})", ephemeral=True)
             return
 
-        status_msg = await ctx.send("ߚ Creating AstroVoid Host VPS instance... This may take a few minutes.")
+        status_msg = await ctx.send("🚀 Creating 🦅 EagleNode VPS instance... This may take a few minutes.")
 
         memory_bytes = memory * 1024 * 1024 * 1024
         vps_id = generate_vps_id()
@@ -977,11 +977,11 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
         token = generate_token()
 
         if use_custom_image:
-            await status_msg.edit(content="ߔ Building custom Docker image...")
+            await status_msg.edit(content="🔨 Building custom 🐳 Docker image...")
             try:
                 image_tag = await build_custom_image(vps_id, username, root_password, user_password, os_image)
             except Exception as e:
-                await status_msg.edit(content=f"❌ Failed to build Docker image: {str(e)}")
+                await status_msg.edit(content=f"❌ Failed to build 🐳 Docker image: {str(e)}")
                 return
 
             await status_msg.edit(content="⚙️ Initializing container...")
@@ -990,14 +990,14 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
                     image_tag,
                     detach=True,
                     privileged=True,
-                    hostname=f"astrovoidhost-{vps_id}",
+                    hostname=f"eaglenode-{vps_id}",
                     mem_limit=memory_bytes,
                     cpu_period=100000,
                     cpu_quota=int(cpu * 100000),
                     cap_add=["ALL"],
                     network=DOCKER_NETWORK,
                     volumes={
-                        f'astrovoidhost-{vps_id}': {'bind': '/data', 'mode': 'rw'}
+                        f'eaglenode-{vps_id}': {'bind': '/data', 'mode': 'rw'}
                     },
                     restart_policy={"Name": "always"}
                 )
@@ -1011,7 +1011,7 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
                     os_image,
                     detach=True,
                     privileged=True,
-                    hostname=f"astrovoidhost-{vps_id}",
+                    hostname=f"eaglenode-{vps_id}",
                     mem_limit=memory_bytes,
                     cpu_period=100000,
                     cpu_quota=int(cpu * 100000),
@@ -1020,7 +1020,7 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
                     tty=True,
                     network=DOCKER_NETWORK,
                     volumes={
-                        f'astrovoidhost-{vps_id}': {'bind': '/data', 'mode': 'rw'}
+                        f'eaglenode-{vps_id}': {'bind': '/data', 'mode': 'rw'}
                     },
                     restart_policy={"Name": "always"}
                 )
@@ -1030,7 +1030,7 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
                     DEFAULT_OS_IMAGE,
                     detach=True,
                     privileged=True,
-                    hostname=f"astrovoidhost-{vps_id}",
+                    hostname=f"eaglenode-{vps_id}",
                     mem_limit=memory_bytes,
                     cpu_period=100000,
                     cpu_quota=int(cpu * 100000),
@@ -1039,13 +1039,13 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
                     tty=True,
                     network=DOCKER_NETWORK,
                     volumes={
-                        f'astrovoidhost-{vps_id}': {'bind': '/data', 'mode': 'rw'}
+                        f'eaglenode-{vps_id}': {'bind': '/data', 'mode': 'rw'}
                     },
                     restart_policy={"Name": "always"}
                 )
                 os_image = DEFAULT_OS_IMAGE
 
-        await status_msg.edit(content="ߔ Container created. Setting up AstroVoid Host environment...")
+        await status_msg.edit(content="🔧 📦 Container created. Setting up EagleNode environment...")
         await asyncio.sleep(5)
 
         setup_success, ssh_password, _ = await setup_container(
@@ -1059,7 +1059,7 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
         if not setup_success:
             raise Exception("Failed to setup container")
 
-        await status_msg.edit(content="ߔ Starting SSH session...")
+        await status_msg.edit(content="🔐 Starting 🔐 SSH session...")
 
         exec_cmd = await asyncio.create_subprocess_exec(
             "docker", "exec", container.id, "tmate", "-F",
@@ -1095,21 +1095,21 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
         bot.db.add_vps(vps_data)
         
         try:
-            embed = discord.Embed(title="ߎ AstroVoid Host VPS Creation Successful", color=discord.Color.green())
-            embed.add_field(name="߆ VPS ID", value=vps_id, inline=True)
-            embed.add_field(name="ߒ Memory", value=f"{memory}GB", inline=True)
-            embed.add_field(name="⚡ CPU", value=f"{cpu} cores", inline=True)
-            embed.add_field(name="ߒ Disk", value=f"{disk}GB", inline=True)
-            embed.add_field(name="ߑ Username", value=username, inline=True)
-            embed.add_field(name="ߔ User Password", value=f"||{ssh_password}||", inline=False)
+            embed = discord.Embed(title="🎉 🦅 EagleNode VPS Creation ✅ Successful", color=discord.Color.green())
+            embed.add_field(name="🆔 🆔 VPS ID", value=vps_id, inline=True)
+            embed.add_field(name="💾 💾 Memory", value=f"{memory}GB", inline=True)
+            embed.add_field(name="⚡ ⚙️ CPU", value=f"{cpu} cores", inline=True)
+            embed.add_field(name="💿 💿 Disk", value=f"{disk}GB", inline=True)
+            embed.add_field(name="👤 👤 Username", value=username, inline=True)
+            embed.add_field(name="🔑 User 🔑 Password", value=f"||{ssh_password}||", inline=False)
             if use_custom_image:
-                embed.add_field(name="ߔ Root Password", value=f"||{root_password}||", inline=False)
-            embed.add_field(name="ߔ Tmate Session", value=f"```{ssh_session_line}```", inline=False)
-            embed.add_field(name="ߔ Direct SSH", value=f"```ssh {username}@<server-ip>```", inline=False)
-            embed.add_field(name="ℹ️ Note", value="This is a AstroVoid Host VPS instance. You can install and configure additional packages as needed.", inline=False)
+                embed.add_field(name="🔑 Root 🔑 Password", value=f"||{root_password}||", inline=False)
+            embed.add_field(name="🔒 Tmate Session", value=f"```{ssh_session_line}```", inline=False)
+            embed.add_field(name="🔌 Direct 🔐 SSH", value=f"```ssh {username}@<server-ip>```", inline=False)
+            embed.add_field(name="ℹ️ 📝 Note", value="This is a 🦅 EagleNode VPS instance. You can install and configure additional packages as needed.", inline=False)
             
             await owner.send(embed=embed)
-            await status_msg.edit(content=f"✅ AstroVoid Host VPS creation successful! VPS has been created for {owner.mention}. Check your DMs for connection details.")
+            await status_msg.edit(content=f"✅ 🦅 EagleNode VPS creation successful! VPS has been created for {owner.mention}. Check your DMs for connection details.")
         except discord.Forbidden:
             await status_msg.edit(content=f"❌ I couldn't send a DM to {owner.mention}. Please ask them to enable DMs from server members.")
             
@@ -1122,7 +1122,7 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
                 container.stop()
                 container.remove()
             except Exception as e:
-                logger.error(f"Error cleaning up container: {e}")
+                logger.error(f"❌ Error cleaning up container: {e}")
 
 @bot.hybrid_command(name='list', description='List all your VPS instances')
 async def list_vps(ctx):
@@ -1134,7 +1134,7 @@ async def list_vps(ctx):
             await ctx.send("You don't have any VPS instances.", ephemeral=True)
             return
 
-        embed = discord.Embed(title="Your AstroVoid Host VPS Instances", color=discord.Color.blue())
+        embed = discord.Embed(title="Your 🦅 EagleNode VPS Instances", color=discord.Color.blue())
         
         for vps in user_vps:
             try:
@@ -1143,28 +1143,28 @@ async def list_vps(ctx):
                 status = vps['status'].capitalize() if vps.get('status') else "Unknown"
             except Exception as e:
                 status = "Not Found"
-                logger.error(f"Error fetching container {vps['container_id']}: {e}")
+                logger.error(f"❌ Error fetching container {vps['container_id']}: {e}")
 
             # Adding fields safely to prevent missing keys causing errors
             embed.add_field(
                 name=f"VPS {vps['vps_id']}",
                 value=f"""
-Status: {status}
-Memory: {vps.get('memory', 'Unknown')}GB
-CPU: {vps.get('cpu', 'Unknown')} cores
-Disk Allocated: {vps.get('disk', 'Unknown')}GB
-Username: {vps.get('username', 'Unknown')}
+📊 Status: {status}
+💾 Memory: {vps.get('memory', 'Unknown')}GB
+⚙️ CPU: {vps.get('cpu', 'Unknown')} cores
+💿 Disk Allocated: {vps.get('disk', 'Unknown')}GB
+👤 Username: {vps.get('username', 'Unknown')}
 OS: {vps.get('os_image', DEFAULT_OS_IMAGE)}
-Created: {vps.get('created_at', 'Unknown')}
-Restarts: {vps.get('restart_count', 0)}
+📅 Created: {vps.get('created_at', 'Unknown')}
+🔁 Restarts: {vps.get('restart_count', 0)}
 """,
                 inline=False
             )
         
         await ctx.send(embed=embed)
     except Exception as e:
-        logger.error(f"Error in list_vps: {e}")
-        await ctx.send(f"❌ Error listing VPS instances: {str(e)}")
+        logger.error(f"❌ Error in list_vps: {e}")
+        await ctx.send(f"❌ ❌ Error listing VPS instances: {str(e)}")
 
 @bot.hybrid_command(name='vps_list', description='List all VPS instances (Admin only)')
 async def admin_list_vps(ctx):
@@ -1179,7 +1179,7 @@ async def admin_list_vps(ctx):
             await ctx.send("No VPS instances found.", ephemeral=True)
             return
 
-        embed = discord.Embed(title="All AstroVoid Host VPS Instances", color=discord.Color.blue())
+        embed = discord.Embed(title="All 🦅 EagleNode VPS Instances", color=discord.Color.blue())
         valid_vps_count = 0
         
         for token, vps in all_vps.items():
@@ -1189,7 +1189,7 @@ async def admin_list_vps(ctx):
                 username = user.name if user else "Unknown User"
             except Exception as e:
                 username = "Unknown User"
-                logger.error(f"Error fetching user {vps.get('created_by')}: {e}")
+                logger.error(f"❌ Error fetching user {vps.get('created_by')}: {e}")
 
             try:
                 # Handle missing container ID gracefully
@@ -1197,21 +1197,21 @@ async def admin_list_vps(ctx):
                 container_status = container.status if container else "Not Found"
             except Exception as e:
                 container_status = "Not Found"
-                logger.error(f"Error fetching container {vps.get('container_id')}: {e}")
+                logger.error(f"❌ Error fetching container {vps.get('container_id')}: {e}")
 
             # Get status and other info with error fallback
             status = vps.get('status', "Unknown").capitalize()
 
             vps_info = f"""
-Owner: {username}
-Status: {status} (Container: {container_status})
-Memory: {vps.get('memory', 'Unknown')}GB
-CPU: {vps.get('cpu', 'Unknown')} cores
-Disk: {vps.get('disk', 'Unknown')}GB
-Username: {vps.get('username', 'Unknown')}
+👑 Owner: {username}
+📊 Status: {status} (📦 Container: {container_status})
+💾 Memory: {vps.get('memory', 'Unknown')}GB
+⚙️ CPU: {vps.get('cpu', 'Unknown')} cores
+💿 Disk: {vps.get('disk', 'Unknown')}GB
+👤 Username: {vps.get('username', 'Unknown')}
 OS: {vps.get('os_image', DEFAULT_OS_IMAGE)}
-Created: {vps.get('created_at', 'Unknown')}
-Restarts: {vps.get('restart_count', 0)}
+📅 Created: {vps.get('created_at', 'Unknown')}
+🔁 Restarts: {vps.get('restart_count', 0)}
 """
 
             embed.add_field(
@@ -1228,8 +1228,8 @@ Restarts: {vps.get('restart_count', 0)}
         embed.set_footer(text=f"Total VPS instances: {valid_vps_count}")
         await ctx.send(embed=embed)
     except Exception as e:
-        logger.error(f"Error in admin_list_vps: {e}")
-        await ctx.send(f"❌ Error listing VPS instances: {str(e)}")
+        logger.error(f"❌ Error in admin_list_vps: {e}")
+        await ctx.send(f"❌ ❌ Error listing VPS instances: {str(e)}")
 
 @bot.hybrid_command(name='delete_vps', description='Delete a VPS instance (Admin only)')
 @app_commands.describe(
@@ -1253,14 +1253,14 @@ async def delete_vps(ctx, vps_id: str):
             container.remove()
             logger.info(f"Deleted container {vps['container_id']} for VPS {vps_id}")
         except Exception as e:
-            logger.error(f"Error removing container: {e}")
+            logger.error(f"❌ Error removing container: {e}")
         
         bot.db.remove_vps(token)
         
-        await ctx.send(f"✅ AstroVoid Host VPS {vps_id} has been deleted successfully!")
+        await ctx.send(f"✅ 🦅 EagleNode VPS {vps_id} has been deleted successfully!")
     except Exception as e:
-        logger.error(f"Error in delete_vps: {e}")
-        await ctx.send(f"❌ Error deleting VPS: {str(e)}")
+        logger.error(f"❌ Error in delete_vps: {e}")
+        await ctx.send(f"❌ ❌ Error deleting VPS: {str(e)}")
 
 @bot.hybrid_command(name='connect_vps', description='Connect to a VPS using the provided token')
 @app_commands.describe(
@@ -1299,27 +1299,27 @@ async def connect_vps(ctx, token: str):
 
         bot.db.update_vps(token, {"tmate_session": ssh_session_line})
         
-        embed = discord.Embed(title="AstroVoid Host VPS Connection Details", color=discord.Color.blue())
-        embed.add_field(name="Username", value=vps["username"], inline=True)
-        embed.add_field(name="SSH Password", value=f"||{vps.get('password', 'Not set')}||", inline=True)
+        embed = discord.Embed(title="🦅 EagleNode VPS Connection Details", color=discord.Color.blue())
+        embed.add_field(name="👤 Username", value=vps["username"], inline=True)
+        embed.add_field(name="🔐 SSH 🔑 Password", value=f"||{vps.get('password', 'Not set')}||", inline=True)
         embed.add_field(name="Tmate Session", value=f"```{ssh_session_line}```", inline=False)
         embed.add_field(name="Connection Instructions", value="""
 1. Copy the Tmate session command
 2. Open your terminal
 3. Paste and run the command
-4. You will be connected to your AstroVoid Host VPS
+4. You will be connected to your 🦅 EagleNode VPS
 
-Or use direct SSH:
+Or use direct 🔐 SSH:
 ```ssh {username}@<server-ip>```
 """.format(username=vps["username"]), inline=False)
         
         await ctx.author.send(embed=embed)
-        await ctx.send("✅ Connection details sent to your DMs! Use the Tmate command to connect to your AstroVoid Host VPS.", ephemeral=True)
+        await ctx.send("✅ Connection details sent to your DMs! Use the Tmate command to connect to your 🦅 EagleNode VPS.", ephemeral=True)
         
     except discord.Forbidden:
         await ctx.send("❌ I couldn't send you a DM. Please enable DMs from server members.", ephemeral=True)
     except Exception as e:
-        logger.error(f"Error in connect_vps: {e}")
+        logger.error(f"❌ Error in connect_vps: {e}")
         await ctx.send(f"❌ An error occurred while connecting to the VPS: {str(e)}", ephemeral=True)
 
 @bot.hybrid_command(name='vps_stats', description='Show resource usage for a VPS')
@@ -1351,7 +1351,7 @@ async def vps_stats(ctx, vps_id: str):
             if mem_process.returncode != 0:
                 raise Exception(f"Failed to get memory info: {stderr.decode()}")
 
-            # Get CPU stats
+            # Get ⚙️ CPU stats
             cpu_process = await asyncio.create_subprocess_exec(
                 "docker", "exec", vps["container_id"], "top", "-bn1",
                 stdout=asyncio.subprocess.PIPE,
@@ -1368,30 +1368,30 @@ async def vps_stats(ctx, vps_id: str):
             disk_stdout, disk_stderr = await disk_process.communicate()
 
             embed = discord.Embed(title=f"Resource Usage for VPS {vps_id}", color=discord.Color.blue())
-            embed.add_field(name="Memory Info", value=f"```{stdout.decode()}```", inline=False)
+            embed.add_field(name="💾 Memory Info", value=f"```{stdout.decode()}```", inline=False)
             
             if disk_process.returncode == 0:
-                embed.add_field(name="Disk Info", value=f"```{disk_stdout.decode()}```", inline=False)
+                embed.add_field(name="💿 Disk Info", value=f"```{disk_stdout.decode()}```", inline=False)
             
             embed.add_field(name="Configured Limits", value=f"""
-Memory: {vps['memory']}GB
-CPU: {vps['cpu']} cores
-Disk Allocated: {vps['disk']}GB
+💾 Memory: {vps['memory']}GB
+⚙️ CPU: {vps['cpu']} cores
+💿 Disk Allocated: {vps['disk']}GB
 """, inline=True)
             
             await ctx.send(embed=embed)
         except Exception as e:
-            await ctx.send(f"❌ Error checking VPS stats: {str(e)}", ephemeral=True)
+            await ctx.send(f"❌ ❌ Error checking VPS stats: {str(e)}", ephemeral=True)
     except Exception as e:
-        logger.error(f"Error in vps_stats: {e}")
-        await ctx.send(f"❌ Error: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in vps_stats: {e}")
+        await ctx.send(f"❌ ❌ Error: {str(e)}", ephemeral=True)
 
-@bot.hybrid_command(name='change_ssh_password', description='Change the SSH password for a VPS')
+@bot.hybrid_command(name='change_ssh_password', description='Change the 🔐 SSH password for a VPS')
 @app_commands.describe(
     vps_id="ID of the VPS to update"
 )
 async def change_ssh_password(ctx, vps_id: str):
-    """Change the SSH password for a VPS"""
+    """Change the 🔐 SSH password for a VPS"""
     try:
         token, vps = bot.db.get_vps_by_id(vps_id)
         if not vps or vps["created_by"] != str(ctx.author.id):
@@ -1418,17 +1418,17 @@ async def change_ssh_password(ctx, vps_id: str):
 
             bot.db.update_vps(token, {'password': new_password})
             
-            embed = discord.Embed(title=f"SSH Password Updated for VPS {vps_id}", color=discord.Color.green())
-            embed.add_field(name="Username", value=vps['username'], inline=True)
-            embed.add_field(name="New Password", value=f"||{new_password}||", inline=False)
+            embed = discord.Embed(title=f"🔐 SSH 🔑 Password Updated for VPS {vps_id}", color=discord.Color.green())
+            embed.add_field(name="👤 Username", value=vps['username'], inline=True)
+            embed.add_field(name="New 🔑 Password", value=f"||{new_password}||", inline=False)
             
             await ctx.author.send(embed=embed)
-            await ctx.send("✅ SSH password updated successfully! Check your DMs for the new password.", ephemeral=True)
+            await ctx.send("✅ 🔐 SSH password updated successfully! Check your DMs for the new password.", ephemeral=True)
         except Exception as e:
-            await ctx.send(f"❌ Error changing SSH password: {str(e)}", ephemeral=True)
+            await ctx.send(f"❌ ❌ Error changing 🔐 SSH password: {str(e)}", ephemeral=True)
     except Exception as e:
-        logger.error(f"Error in change_ssh_password: {e}")
-        await ctx.send(f"❌ Error: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in change_ssh_password: {e}")
+        await ctx.send(f"❌ ❌ Error: {str(e)}", ephemeral=True)
 
 @bot.hybrid_command(name='admin_stats', description='Show system statistics (Admin only)')
 async def admin_stats(ctx):
@@ -1438,26 +1438,26 @@ async def admin_stats(ctx):
         return
 
     try:
-        # Get Docker stats
+        # Get 🐳 Docker stats
         containers = bot.docker_client.containers.list(all=True) if bot.docker_client else []
         
         # Get system stats
         stats = bot.system_stats
         
-        embed = discord.Embed(title="AstroVoid Host System Statistics", color=discord.Color.blue())
+        embed = discord.Embed(title="EagleNode 🖥️ System Statistics", color=discord.Color.blue())
         embed.add_field(name="VPS Instances", value=f"Total: {len(bot.db.get_all_vps())}\nRunning: {len([c for c in containers if c.status == 'running'])}", inline=True)
-        embed.add_field(name="Docker Containers", value=f"Total: {len(containers)}\nRunning: {len([c for c in containers if c.status == 'running'])}", inline=True)
-        embed.add_field(name="CPU Usage", value=f"{stats['cpu_usage']}%", inline=True)
-        embed.add_field(name="Memory Usage", value=f"{stats['memory_usage']}% ({stats['memory_used']:.2f}GB / {stats['memory_total']:.2f}GB)", inline=True)
-        embed.add_field(name="Disk Usage", value=f"{stats['disk_usage']}% ({stats['disk_used']:.2f}GB / {stats['disk_total']:.2f}GB)", inline=True)
-        embed.add_field(name="Network", value=f"Sent: {stats['network_sent']:.2f}MB\nRecv: {stats['network_recv']:.2f}MB", inline=True)
-        embed.add_field(name="Container Limit", value=f"{len(containers)}/{bot.db.get_setting('max_containers')}", inline=True)
+        embed.add_field(name="🐳 Docker 📦 Containers", value=f"Total: {len(containers)}\nRunning: {len([c for c in containers if c.status == 'running'])}", inline=True)
+        embed.add_field(name="⚙️ CPU Usage", value=f"{stats['cpu_usage']}%", inline=True)
+        embed.add_field(name="💾 Memory Usage", value=f"{stats['memory_usage']}% ({stats['memory_used']:.2f}GB / {stats['memory_total']:.2f}GB)", inline=True)
+        embed.add_field(name="💿 Disk Usage", value=f"{stats['disk_usage']}% ({stats['disk_used']:.2f}GB / {stats['disk_total']:.2f}GB)", inline=True)
+        embed.add_field(name="🌐 Network", value=f"Sent: {stats['network_sent']:.2f}MB\nRecv: {stats['network_recv']:.2f}MB", inline=True)
+        embed.add_field(name="📦 Container Limit", value=f"{len(containers)}/{bot.db.get_setting('max_containers')}", inline=True)
         embed.add_field(name="Last Updated", value=f"<t:{int(stats['last_updated'])}:R>", inline=True)
         
         await ctx.send(embed=embed)
     except Exception as e:
-        logger.error(f"Error in admin_stats: {e}")
-        await ctx.send(f"❌ Error getting system stats: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in admin_stats: {e}")
+        await ctx.send(f"❌ ❌ Error getting system stats: {str(e)}", ephemeral=True)
 
 @bot.hybrid_command(name='system_info', description='Show detailed system information (Admin only)')
 async def system_info(ctx):
@@ -1471,7 +1471,7 @@ async def system_info(ctx):
         uname = platform.uname()
         boot_time = datetime.datetime.fromtimestamp(psutil.boot_time())
         
-        # CPU information
+        # ⚙️ CPU information
         cpu_info = f"""
 System: {uname.system}
 Node Name: {uname.node}
@@ -1481,10 +1481,10 @@ Machine: {uname.machine}
 Processor: {uname.processor}
 Physical cores: {psutil.cpu_count(logical=False)}
 Total cores: {psutil.cpu_count(logical=True)}
-CPU Usage: {psutil.cpu_percent()}%
+⚙️ CPU Usage: {psutil.cpu_percent()}%
 """
         
-        # Memory Information
+        # 💾 Memory Information
         svmem = psutil.virtual_memory()
         mem_info = f"""
 Total: {svmem.total / (1024**3):.2f}GB
@@ -1493,7 +1493,7 @@ Used: {svmem.used / (1024**3):.2f}GB
 Percentage: {svmem.percent}%
 """
         
-        # Disk Information
+        # 💿 Disk Information
         partitions = psutil.disk_partitions()
         disk_info = ""
         for partition in partitions:
@@ -1508,40 +1508,40 @@ Device: {partition.device}
   Free: {partition_usage.free / (1024**3):.2f}GB
   Percentage: {partition_usage.percent}%
 """
-            except PermissionError:
+            except Permission❌ Error:
                 continue
         
-        # Network information
+        # 🌐 Network information
         net_io = psutil.net_io_counters()
         net_info = f"""
 Bytes Sent: {net_io.bytes_sent / (1024**2):.2f}MB
 Bytes Received: {net_io.bytes_recv / (1024**2):.2f}MB
 """
         
-        embed = discord.Embed(title="Detailed System Information", color=discord.Color.blue())
+        embed = discord.Embed(title="Detailed 📟 System Information", color=discord.Color.blue())
         embed.add_field(name="System", value=f"Boot Time: {boot_time}", inline=False)
-        embed.add_field(name="CPU Info", value=f"```{cpu_info}```", inline=False)
-        embed.add_field(name="Memory Info", value=f"```{mem_info}```", inline=False)
-        embed.add_field(name="Disk Info", value=f"```{disk_info}```", inline=False)
-        embed.add_field(name="Network Info", value=f"```{net_info}```", inline=False)
+        embed.add_field(name="⚙️ CPU Info", value=f"```{cpu_info}```", inline=False)
+        embed.add_field(name="💾 Memory Info", value=f"```{mem_info}```", inline=False)
+        embed.add_field(name="💿 Disk Info", value=f"```{disk_info}```", inline=False)
+        embed.add_field(name="🌐 Network Info", value=f"```{net_info}```", inline=False)
         
         await ctx.send(embed=embed)
     except Exception as e:
-        logger.error(f"Error in system_info: {e}")
-        await ctx.send(f"❌ Error getting system info: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in system_info: {e}")
+        await ctx.send(f"❌ ❌ Error getting system info: {str(e)}", ephemeral=True)
 
-@bot.hybrid_command(name='container_limit', description='Set maximum container limit (Owner only)')
+@bot.hybrid_command(name='container_limit', description='Set maximum container limit (👑 Owner only)')
 @app_commands.describe(
     max_limit="New maximum container limit"
 )
 async def set_container_limit(ctx, max_limit: int):
-    """Set maximum container limit (Owner only)"""
+    """Set maximum container limit (👑 Owner only)"""
     if ctx.author.id != 1210291131301101618:  # Only the owner can set limit
         await ctx.send("❌ Only the owner can set container limit!", ephemeral=True)
         return
     
     if max_limit < 1 or max_limit > 1000:
-        await ctx.send("❌ Container limit must be between 1 and 1000", ephemeral=True)
+        await ctx.send("❌ 📦 Container limit must be between 1 and 1000", ephemeral=True)
         return
     
     bot.db.set_setting('max_containers', max_limit)
@@ -1569,7 +1569,7 @@ async def cleanup_vps(ctx):
                 bot.db.remove_vps(token)
                 cleanup_count += 1
             except Exception as e:
-                logger.error(f"Error cleaning up VPS {vps['vps_id']}: {e}")
+                logger.error(f"❌ Error cleaning up VPS {vps['vps_id']}: {e}")
                 continue
         
         if cleanup_count > 0:
@@ -1577,8 +1577,8 @@ async def cleanup_vps(ctx):
         else:
             await ctx.send("ℹ️ No inactive VPS instances found to clean up.")
     except Exception as e:
-        logger.error(f"Error in cleanup_vps: {e}")
-        await ctx.send(f"❌ Error during cleanup: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in cleanup_vps: {e}")
+        await ctx.send(f"❌ ❌ Error during cleanup: {str(e)}", ephemeral=True)
 
 @bot.hybrid_command(name='vps_shell', description='Get shell access to your VPS')
 @app_commands.describe(
@@ -1600,13 +1600,13 @@ async def vps_shell(ctx, vps_id: str):
 
             await ctx.send(f"✅ Shell access to VPS {vps_id}:\n"
                           f"```docker exec -it {vps['container_id']} bash```\n"
-                          f"Username: {vps['username']}\n"
-                          f"Password: ||{vps.get('password', 'Not set')}||", ephemeral=True)
+                          f"👤 Username: {vps['username']}\n"
+                          f"🔑 Password: ||{vps.get('password', 'Not set')}||", ephemeral=True)
         except Exception as e:
-            await ctx.send(f"❌ Error accessing VPS shell: {str(e)}", ephemeral=True)
+            await ctx.send(f"❌ ❌ Error accessing VPS shell: {str(e)}", ephemeral=True)
     except Exception as e:
-        logger.error(f"Error in vps_shell: {e}")
-        await ctx.send(f"❌ Error: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in vps_shell: {e}")
+        await ctx.send(f"❌ ❌ Error: {str(e)}", ephemeral=True)
 
 @bot.hybrid_command(name='vps_console', description='Get direct console access to your VPS')
 @app_commands.describe(
@@ -1628,13 +1628,13 @@ async def vps_console(ctx, vps_id: str):
 
             await ctx.send(f"✅ Console access to VPS {vps_id}:\n"
                           f"```docker attach {vps['container_id']}```\n"
-                          f"Note: To detach from the console without stopping the container, use Ctrl+P followed by Ctrl+Q", 
+                          f"📝 Note: To detach from the console without stopping the container, use Ctrl+P followed by Ctrl+Q", 
                           ephemeral=True)
         except Exception as e:
-            await ctx.send(f"❌ Error accessing VPS console: {str(e)}", ephemeral=True)
+            await ctx.send(f"❌ ❌ Error accessing VPS console: {str(e)}", ephemeral=True)
     except Exception as e:
-        logger.error(f"Error in vps_console: {e}")
-        await ctx.send(f"❌ Error: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in vps_console: {e}")
+        await ctx.send(f"❌ ❌ Error: {str(e)}", ephemeral=True)
 
 @bot.hybrid_command(name='vps_usage', description='Show your VPS usage statistics')
 async def vps_usage(ctx):
@@ -1647,17 +1647,17 @@ async def vps_usage(ctx):
         total_disk = sum(vps['disk'] for vps in user_vps)
         total_restarts = sum(vps.get('restart_count', 0) for vps in user_vps)
         
-        embed = discord.Embed(title="Your AstroVoid Host VPS Usage", color=discord.Color.blue())
+        embed = discord.Embed(title="Your 🦅 EagleNode VPS Usage", color=discord.Color.blue())
         embed.add_field(name="Total VPS Instances", value=len(user_vps), inline=True)
-        embed.add_field(name="Total Memory Allocated", value=f"{total_memory}GB", inline=True)
-        embed.add_field(name="Total CPU Cores Allocated", value=total_cpu, inline=True)
-        embed.add_field(name="Total Disk Allocated", value=f"{total_disk}GB", inline=True)
-        embed.add_field(name="Total Restarts", value=total_restarts, inline=True)
+        embed.add_field(name="Total 💾 Memory Allocated", value=f"{total_memory}GB", inline=True)
+        embed.add_field(name="Total ⚙️ CPU Cores Allocated", value=total_cpu, inline=True)
+        embed.add_field(name="Total 💿 Disk Allocated", value=f"{total_disk}GB", inline=True)
+        embed.add_field(name="Total 🔁 Restarts", value=total_restarts, inline=True)
         
         await ctx.send(embed=embed)
     except Exception as e:
-        logger.error(f"Error in vps_usage: {e}")
-        await ctx.send(f"❌ Error: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in vps_usage: {e}")
+        await ctx.send(f"❌ ❌ Error: {str(e)}", ephemeral=True)
 
 @bot.hybrid_command(name='global_stats', description='Show global usage statistics (Admin only)')
 async def global_stats(ctx):
@@ -1673,19 +1673,19 @@ async def global_stats(ctx):
         total_disk = sum(vps['disk'] for vps in all_vps.values())
         total_restarts = sum(vps.get('restart_count', 0) for vps in all_vps.values())
         
-        embed = discord.Embed(title="AstroVoid Host Global Usage Statistics", color=discord.Color.blue())
-        embed.add_field(name="Total VPS Created", value=bot.db.get_stat('total_vps_created'), inline=True)
-        embed.add_field(name="Total Restarts", value=bot.db.get_stat('total_restarts'), inline=True)
+        embed = discord.Embed(title="EagleNode Global Usage Statistics", color=discord.Color.blue())
+        embed.add_field(name="Total VPS 📅 Created", value=bot.db.get_stat('total_vps_created'), inline=True)
+        embed.add_field(name="Total 🔁 Restarts", value=bot.db.get_stat('total_restarts'), inline=True)
         embed.add_field(name="Current VPS Instances", value=len(all_vps), inline=True)
-        embed.add_field(name="Total Memory Allocated", value=f"{total_memory}GB", inline=True)
-        embed.add_field(name="Total CPU Cores Allocated", value=total_cpu, inline=True)
-        embed.add_field(name="Total Disk Allocated", value=f"{total_disk}GB", inline=True)
-        embed.add_field(name="Total Restarts", value=total_restarts, inline=True)
+        embed.add_field(name="Total 💾 Memory Allocated", value=f"{total_memory}GB", inline=True)
+        embed.add_field(name="Total ⚙️ CPU Cores Allocated", value=total_cpu, inline=True)
+        embed.add_field(name="Total 💿 Disk Allocated", value=f"{total_disk}GB", inline=True)
+        embed.add_field(name="Total 🔁 Restarts", value=total_restarts, inline=True)
         
         await ctx.send(embed=embed)
     except Exception as e:
-        logger.error(f"Error in global_stats: {e}")
-        await ctx.send(f"❌ Error: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in global_stats: {e}")
+        await ctx.send(f"❌ ❌ Error: {str(e)}", ephemeral=True)
 
 @bot.hybrid_command(name='migrate_vps', description='Migrate a VPS to another host (Admin only)')
 @app_commands.describe(
@@ -1703,7 +1703,7 @@ async def migrate_vps(ctx, vps_id: str):
             await ctx.send("❌ VPS not found!", ephemeral=True)
             return
 
-        status_msg = await ctx.send(f"ߔ Preparing to migrate VPS {vps_id}...")
+        status_msg = await ctx.send(f"🔄 Preparing to migrate VPS {vps_id}...")
         
         # Create a snapshot
         backup_id = generate_vps_id()[:8]
@@ -1712,7 +1712,7 @@ async def migrate_vps(ctx, vps_id: str):
         os.makedirs(backup_dir, exist_ok=True)
         backup_file = f"{backup_dir}/{backup_id}.tar"
         
-        await status_msg.edit(content=f"ߔ Creating snapshot {backup_id} for migration...")
+        await status_msg.edit(content=f"🔄 Creating snapshot {backup_id} for migration...")
         
         process = await asyncio.create_subprocess_exec(
             "docker", "export", "-o", backup_file, vps["container_id"],
@@ -1727,8 +1727,8 @@ async def migrate_vps(ctx, vps_id: str):
         await status_msg.edit(content=f"✅ Snapshot {backup_id} created successfully. Please download this file and import it on the new host: {backup_file}")
         
     except Exception as e:
-        logger.error(f"Error in migrate_vps: {e}")
-        await ctx.send(f"❌ Error during migration: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in migrate_vps: {e}")
+        await ctx.send(f"❌ ❌ Error during migration: {str(e)}", ephemeral=True)
 
 @bot.hybrid_command(name='emergency_stop', description='Force stop a problematic VPS (Admin only)')
 @app_commands.describe(
@@ -1768,14 +1768,14 @@ async def emergency_stop(ctx, vps_id: str):
                 subprocess.run(["docker", "kill", vps["container_id"]], check=True)
                 bot.db.update_vps(token, {'status': 'stopped'})
                 await ctx.send("✅ VPS killed forcefully!", ephemeral=True)
-            except subprocess.CalledProcessError as e:
+            except subprocess.CalledProcess❌ Error as e:
                 raise Exception(f"Failed to kill container: {e}")
             
         except Exception as e:
-            await ctx.send(f"❌ Error stopping VPS: {str(e)}", ephemeral=True)
+            await ctx.send(f"❌ ❌ Error stopping VPS: {str(e)}", ephemeral=True)
     except Exception as e:
-        logger.error(f"Error in emergency_stop: {e}")
-        await ctx.send(f"❌ Error: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in emergency_stop: {e}")
+        await ctx.send(f"❌ ❌ Error: {str(e)}", ephemeral=True)
 
 @bot.hybrid_command(name='emergency_remove', description='Force remove a problematic VPS (Admin only)')
 @app_commands.describe(
@@ -1804,7 +1804,7 @@ async def emergency_remove(ctx, vps_id: str):
             # Then try to remove it forcefully
             try:
                 subprocess.run(["docker", "rm", "-f", vps["container_id"]], check=True)
-            except subprocess.CalledProcessError as e:
+            except subprocess.CalledProcess❌ Error as e:
                 raise Exception(f"Failed to remove container: {e}")
             
             # Remove from data
@@ -1812,10 +1812,10 @@ async def emergency_remove(ctx, vps_id: str):
             
             await ctx.send("✅ VPS removed forcefully!", ephemeral=True)
         except Exception as e:
-            await ctx.send(f"❌ Error removing VPS: {str(e)}", ephemeral=True)
+            await ctx.send(f"❌ ❌ Error removing VPS: {str(e)}", ephemeral=True)
     except Exception as e:
-        logger.error(f"Error in emergency_remove: {e}")
-        await ctx.send(f"❌ Error: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in emergency_remove: {e}")
+        await ctx.send(f"❌ ❌ Error: {str(e)}", ephemeral=True)
 
 @bot.hybrid_command(name='suspend_vps', description='Suspend a VPS (Admin only)')
 @app_commands.describe(
@@ -1841,7 +1841,7 @@ async def suspend_vps(ctx, vps_id: str):
             container = bot.docker_client.containers.get(vps["container_id"])
             container.stop()
         except Exception as e:
-            logger.error(f"Error stopping container for suspend: {e}")
+            logger.error(f"❌ Error stopping container for suspend: {e}")
 
         bot.db.update_vps(token, {'status': 'suspended'})
         await ctx.send(f"✅ VPS {vps_id} has been suspended!")
@@ -1854,8 +1854,8 @@ async def suspend_vps(ctx, vps_id: str):
             pass
 
     except Exception as e:
-        logger.error(f"Error in suspend_vps: {e}")
-        await ctx.send(f"❌ Error suspending VPS: {str(e)}")
+        logger.error(f"❌ Error in suspend_vps: {e}")
+        await ctx.send(f"❌ ❌ Error suspending VPS: {str(e)}")
 
 @bot.hybrid_command(name='unsuspend_vps', description='Unsuspend a VPS (Admin only)')
 @app_commands.describe(
@@ -1881,8 +1881,8 @@ async def unsuspend_vps(ctx, vps_id: str):
             container = bot.docker_client.containers.get(vps["container_id"])
             container.start()
         except Exception as e:
-            logger.error(f"Error starting container for unsuspend: {e}")
-            await ctx.send(f"❌ Error starting container: {str(e)}")
+            logger.error(f"❌ Error starting container for unsuspend: {e}")
+            await ctx.send(f"❌ ❌ Error starting container: {str(e)}")
             return
 
         bot.db.update_vps(token, {'status': 'running'})
@@ -1896,14 +1896,14 @@ async def unsuspend_vps(ctx, vps_id: str):
             pass
 
     except Exception as e:
-        logger.error(f"Error in unsuspend_vps: {e}")
-        await ctx.send(f"❌ Error unsuspending VPS: {str(e)}")
+        logger.error(f"❌ Error in unsuspend_vps: {e}")
+        await ctx.send(f"❌ ❌ Error unsuspending VPS: {str(e)}")
 
 @bot.hybrid_command(name='edit_vps', description='Edit VPS specifications (Admin only)')
 @app_commands.describe(
     vps_id="ID of the VPS to edit",
     memory="New memory in GB (optional)",
-    cpu="New CPU cores (optional)",
+    cpu="New ⚙️ CPU cores (optional)",
     disk="New disk space in GB (optional)"
 )
 async def edit_vps(ctx, vps_id: str, memory: Optional[int] = None, cpu: Optional[int] = None, disk: Optional[int] = None):
@@ -1925,17 +1925,17 @@ async def edit_vps(ctx, vps_id: str, memory: Optional[int] = None, cpu: Optional
         updates = {}
         if memory is not None:
             if memory < 1 or memory > 512:
-                await ctx.send("❌ Memory must be between 1GB and 512GB", ephemeral=True)
+                await ctx.send("❌ 💾 Memory must be between 1GB and 512GB", ephemeral=True)
                 return
             updates['memory'] = memory
         if cpu is not None:
             if cpu < 1 or cpu > 32:
-                await ctx.send("❌ CPU cores must be between 1 and 32", ephemeral=True)
+                await ctx.send("❌ ⚙️ CPU cores must be between 1 and 32", ephemeral=True)
                 return
             updates['cpu'] = cpu
         if disk is not None:
             if disk < 10 or disk > 1000:
-                await ctx.send("❌ Disk space must be between 10GB and 1000GB", ephemeral=True)
+                await ctx.send("❌ 💿 Disk space must be between 10GB and 1000GB", ephemeral=True)
                 return
             updates['disk'] = disk
 
@@ -1952,7 +1952,7 @@ async def edit_vps(ctx, vps_id: str, memory: Optional[int] = None, cpu: Optional
                 vps['os_image'],
                 detach=True,
                 privileged=True,
-                hostname=f"astrovoidhost-{vps_id}",
+                hostname=f"eaglenode-{vps_id}",
                 mem_limit=memory_bytes,
                 cpu_period=100000,
                 cpu_quota=cpu_quota,
@@ -1961,7 +1961,7 @@ async def edit_vps(ctx, vps_id: str, memory: Optional[int] = None, cpu: Optional
                 tty=True,
                 network=DOCKER_NETWORK,
                 volumes={
-                    f'astrovoidhost-{vps_id}': {'bind': '/data', 'mode': 'rw'}
+                    f'eaglenode-{vps_id}': {'bind': '/data', 'mode': 'rw'}
                 },
                 restart_policy={"Name": "always"}
             )
@@ -1979,15 +1979,15 @@ async def edit_vps(ctx, vps_id: str, memory: Optional[int] = None, cpu: Optional
             if not setup_success:
                 raise Exception("Failed to setup new container")
         except Exception as e:
-            await ctx.send(f"❌ Error updating container: {str(e)}")
+            await ctx.send(f"❌ ❌ Error updating container: {str(e)}")
             return
 
         bot.db.update_vps(token, updates)
         await ctx.send(f"✅ VPS {vps_id} specifications updated successfully!")
 
     except Exception as e:
-        logger.error(f"Error in edit_vps: {e}")
-        await ctx.send(f"❌ Error editing VPS: {str(e)}")
+        logger.error(f"❌ Error in edit_vps: {e}")
+        await ctx.send(f"❌ ❌ Error editing VPS: {str(e)}")
 
 @bot.hybrid_command(name='ban_user', description='Ban a user from creating VPS (Admin only)')
 @app_commands.describe(
@@ -2051,8 +2051,8 @@ async def backup_data(ctx):
         else:
             await ctx.send("❌ Failed to backup data!", ephemeral=True)
     except Exception as e:
-        logger.error(f"Error in backup_data: {e}")
-        await ctx.send(f"❌ Error backing up data: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in backup_data: {e}")
+        await ctx.send(f"❌ ❌ Error backing up data: {str(e)}", ephemeral=True)
 
 @bot.hybrid_command(name='restore_data', description='Restore from backup (Admin only)')
 async def restore_data(ctx):
@@ -2067,20 +2067,20 @@ async def restore_data(ctx):
         else:
             await ctx.send("❌ Failed to restore data!", ephemeral=True)
     except Exception as e:
-        logger.error(f"Error in restore_data: {e}")
-        await ctx.send(f"❌ Error restoring data: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in restore_data: {e}")
+        await ctx.send(f"❌ ❌ Error restoring data: {str(e)}", ephemeral=True)
 
-@bot.hybrid_command(name='reinstall_bot', description='Reinstall the bot (Owner only)')
+@bot.hybrid_command(name='reinstall_bot', description='Reinstall the bot (👑 Owner only)')
 async def reinstall_bot(ctx):
-    """Reinstall the bot (Owner only)"""
+    """Reinstall the bot (👑 Owner only)"""
     if ctx.author.id != 1210291131301101618:  # Only the owner can reinstall
         await ctx.send("❌ Only the owner can reinstall the bot!", ephemeral=True)
         return
 
     try:
-        await ctx.send("ߔ Reinstalling AstroVoid Host bot... This may take a few minutes.")
+        await ctx.send("🔄 Reinstalling EagleNode bot... This may take a few minutes.")
         
-        # Create Dockerfile for bot reinstallation
+        # Create 🐳 Dockerfile for bot reinstallation
         dockerfile_content = f"""
 FROM python:3.11-slim
 
@@ -2102,12 +2102,12 @@ COPY . .
 CMD ["python", "bot.py"]
 """
         
-        with open("Dockerfile.bot", "w") as f:
+        with open("🐳 Dockerfile.bot", "w") as f:
             f.write(dockerfile_content)
         
         # Build and run the bot in a container
         process = await asyncio.create_subprocess_exec(
-            "docker", "build", "-t", "eaglenode-bot", "-f", "Dockerfile.bot", ".",
+            "docker", "build", "-t", "eaglenode-bot", "-f", "🐳 Dockerfile.bot", ".",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
@@ -2123,8 +2123,8 @@ CMD ["python", "bot.py"]
         os._exit(0)
         
     except Exception as e:
-        logger.error(f"Error in reinstall_bot: {e}")
-        await ctx.send(f"❌ Error reinstalling bot: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in reinstall_bot: {e}")
+        await ctx.send(f"❌ ❌ Error reinstalling bot: {str(e)}", ephemeral=True)
 
 class VPSManagementView(ui.View):
     def __init__(self, vps_id, container_id):
@@ -2138,9 +2138,9 @@ class VPSManagementView(ui.View):
         if token:
             bot.db.remove_vps(token)
         
-        embed = discord.Embed(title=f"AstroVoid Host VPS Management - {self.vps_id}", color=discord.Color.red())
-        embed.add_field(name="Status", value="ߔ Container Not Found", inline=True)
-        embed.add_field(name="Note", value="This VPS instance is no longer available. Please create a new one.", inline=False)
+        embed = discord.Embed(title=f"🦅 EagleNode VPS Management - {self.vps_id}", color=discord.Color.red())
+        embed.add_field(name="📊 Status", value="🔴 📦 Container Not Found", inline=True)
+        embed.add_field(name="📝 Note", value="This VPS instance is no longer available. Please create a new one.", inline=False)
         
         for item in self.children:
             item.disabled = True
@@ -2174,20 +2174,20 @@ class VPSManagementView(ui.View):
             if token:
                 bot.db.update_vps(token, {'status': 'running'})
             
-            embed = discord.Embed(title=f"AstroVoid Host VPS Management - {self.vps_id}", color=discord.Color.green())
-            embed.add_field(name="Status", value="ߟ Running", inline=True)
+            embed = discord.Embed(title=f"🦅 EagleNode VPS Management - {self.vps_id}", color=discord.Color.green())
+            embed.add_field(name="📊 Status", value="🟢 Running", inline=True)
             
             if vps:
-                embed.add_field(name="Memory", value=f"{vps['memory']}GB", inline=True)
-                embed.add_field(name="CPU", value=f"{vps['cpu']} cores", inline=True)
-                embed.add_field(name="Disk", value=f"{vps['disk']}GB", inline=True)
-                embed.add_field(name="Username", value=vps['username'], inline=True)
-                embed.add_field(name="Created", value=vps['created_at'], inline=True)
+                embed.add_field(name="💾 Memory", value=f"{vps['memory']}GB", inline=True)
+                embed.add_field(name="⚙️ CPU", value=f"{vps['cpu']} cores", inline=True)
+                embed.add_field(name="💿 Disk", value=f"{vps['disk']}GB", inline=True)
+                embed.add_field(name="👤 Username", value=vps['username'], inline=True)
+                embed.add_field(name="📅 Created", value=vps['created_at'], inline=True)
             
             await interaction.message.edit(embed=embed)
-            await interaction.followup.send("✅ AstroVoid Host VPS started successfully!", ephemeral=True)
+            await interaction.followup.send("✅ 🦅 EagleNode VPS started successfully!", ephemeral=True)
         except Exception as e:
-            await interaction.followup.send(f"❌ Error starting VPS: {str(e)}", ephemeral=True)
+            await interaction.followup.send(f"❌ ❌ Error starting VPS: {str(e)}", ephemeral=True)
 
     @discord.ui.button(label="Stop VPS", style=discord.ButtonStyle.red)
     async def stop_vps(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -2210,20 +2210,20 @@ class VPSManagementView(ui.View):
             if token:
                 bot.db.update_vps(token, {'status': 'stopped'})
             
-            embed = discord.Embed(title=f"AstroVoid Host VPS Management - {self.vps_id}", color=discord.Color.orange())
-            embed.add_field(name="Status", value="ߔ Stopped", inline=True)
+            embed = discord.Embed(title=f"🦅 EagleNode VPS Management - {self.vps_id}", color=discord.Color.orange())
+            embed.add_field(name="📊 Status", value="🔴 Stopped", inline=True)
             
             if vps:
-                embed.add_field(name="Memory", value=f"{vps['memory']}GB", inline=True)
-                embed.add_field(name="CPU", value=f"{vps['cpu']} cores", inline=True)
-                embed.add_field(name="Disk", value=f"{vps['disk']}GB", inline=True)
-                embed.add_field(name="Username", value=vps['username'], inline=True)
-                embed.add_field(name="Created", value=vps['created_at'], inline=True)
+                embed.add_field(name="💾 Memory", value=f"{vps['memory']}GB", inline=True)
+                embed.add_field(name="⚙️ CPU", value=f"{vps['cpu']} cores", inline=True)
+                embed.add_field(name="💿 Disk", value=f"{vps['disk']}GB", inline=True)
+                embed.add_field(name="👤 Username", value=vps['username'], inline=True)
+                embed.add_field(name="📅 Created", value=vps['created_at'], inline=True)
             
             await interaction.message.edit(embed=embed)
-            await interaction.followup.send("✅ AstroVoid Host VPS stopped successfully!", ephemeral=True)
+            await interaction.followup.send("✅ 🦅 EagleNode VPS stopped successfully!", ephemeral=True)
         except Exception as e:
-            await interaction.followup.send(f"❌ Error stopping VPS: {str(e)}", ephemeral=True)
+            await interaction.followup.send(f"❌ ❌ Error stopping VPS: {str(e)}", ephemeral=True)
 
     @discord.ui.button(label="Restart VPS", style=discord.ButtonStyle.blurple)
     async def restart_vps(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -2255,7 +2255,7 @@ class VPSManagementView(ui.View):
                 
                 bot.db.increment_stat('total_restarts')
                 
-                # Get new SSH session
+                # Get new 🔐 SSH session
                 try:
                     exec_cmd = await asyncio.create_subprocess_exec(
                         "docker", "exec", self.container_id, "tmate", "-F",
@@ -2267,32 +2267,32 @@ class VPSManagementView(ui.View):
                     if ssh_session_line:
                         bot.db.update_vps(token, {'tmate_session': ssh_session_line})
                         
-                        # Send new SSH details to owner
+                        # Send new 🔐 SSH details to owner
                         try:
                             owner = await bot.fetch_user(int(vps["created_by"]))
-                            embed = discord.Embed(title=f"AstroVoid Host VPS Restarted - {self.vps_id}", color=discord.Color.blue())
-                            embed.add_field(name="New SSH Session", value=f"```{ssh_session_line}```", inline=False)
+                            embed = discord.Embed(title=f"🦅 EagleNode VPS Restarted - {self.vps_id}", color=discord.Color.blue())
+                            embed.add_field(name="New 🔐 SSH Session", value=f"```{ssh_session_line}```", inline=False)
                             await owner.send(embed=embed)
                         except:
                             pass
                 except:
                     pass
             
-            embed = discord.Embed(title=f"AstroVoid Host VPS Management - {self.vps_id}", color=discord.Color.green())
-            embed.add_field(name="Status", value="ߟ Running", inline=True)
+            embed = discord.Embed(title=f"🦅 EagleNode VPS Management - {self.vps_id}", color=discord.Color.green())
+            embed.add_field(name="📊 Status", value="🟢 Running", inline=True)
             
             if vps:
-                embed.add_field(name="Memory", value=f"{vps['memory']}GB", inline=True)
-                embed.add_field(name="CPU", value=f"{vps['cpu']} cores", inline=True)
-                embed.add_field(name="Disk", value=f"{vps['disk']}GB", inline=True)
-                embed.add_field(name="Username", value=vps['username'], inline=True)
-                embed.add_field(name="Created", value=vps['created_at'], inline=True)
+                embed.add_field(name="💾 Memory", value=f"{vps['memory']}GB", inline=True)
+                embed.add_field(name="⚙️ CPU", value=f"{vps['cpu']} cores", inline=True)
+                embed.add_field(name="💿 Disk", value=f"{vps['disk']}GB", inline=True)
+                embed.add_field(name="👤 Username", value=vps['username'], inline=True)
+                embed.add_field(name="📅 Created", value=vps['created_at'], inline=True)
                 embed.add_field(name="Restart Count", value=vps.get('restart_count', 0) + 1, inline=True)
             
             await interaction.message.edit(embed=embed, view=VPSManagementView(self.vps_id, container.id))
-            await interaction.followup.send("✅ AstroVoid Host VPS restarted successfully! New SSH details sent to owner.", ephemeral=True)
+            await interaction.followup.send("✅ 🦅 EagleNode VPS restarted successfully! New 🔐 SSH details sent to owner.", ephemeral=True)
         except Exception as e:
-            await interaction.followup.send(f"❌ Error restarting VPS: {str(e)}", ephemeral=True)
+            await interaction.followup.send(f"❌ ❌ Error restarting VPS: {str(e)}", ephemeral=True)
 
     @discord.ui.button(label="Reinstall OS", style=discord.ButtonStyle.grey)
     async def reinstall_os(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -2306,7 +2306,7 @@ class VPSManagementView(ui.View):
             view = OSSelectionView(self.vps_id, self.container_id, interaction.message)
             await interaction.response.send_message("Select new OS:", view=view, ephemeral=True)
         except Exception as e:
-            await interaction.response.send_message(f"❌ Error: {str(e)}", ephemeral=True)
+            await interaction.response.send_message(f"❌ ❌ Error: {str(e)}", ephemeral=True)
 
     @discord.ui.button(label="Transfer VPS", style=discord.ButtonStyle.grey)
     async def transfer_vps(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -2350,18 +2350,18 @@ class OSSelectionView(ui.View):
                 old_container.stop()
                 old_container.remove()
             except Exception as e:
-                logger.error(f"Error removing old container: {e}")
+                logger.error(f"❌ Error removing old container: {e}")
 
-            status_msg = await interaction.followup.send("ߔ Reinstalling AstroVoid Host VPS... This may take a few minutes.", ephemeral=True)
+            status_msg = await interaction.followup.send("🔄 Reinstalling 🦅 EagleNode VPS... This may take a few minutes.", ephemeral=True)
             
             memory_bytes = vps['memory'] * 1024 * 1024 * 1024
 
             # Always use custom image for reinstall to ensure consistency
-            await status_msg.edit(content="ߔ Building custom Docker image for new OS...")
+            await status_msg.edit(content="🔨 Building custom 🐳 Docker image for new OS...")
             try:
                 image_tag = await build_custom_image(self.vps_id, vps['username'], generate_ssh_password(), vps['password'], image)
             except Exception as e:
-                await status_msg.edit(content=f"❌ Failed to build new Docker image: {str(e)}")
+                await status_msg.edit(content=f"❌ Failed to build new 🐳 Docker image: {str(e)}")
                 return
 
             try:
@@ -2369,14 +2369,14 @@ class OSSelectionView(ui.View):
                     image_tag,
                     detach=True,
                     privileged=True,
-                    hostname=f"astrovoidhost-{self.vps_id}",
+                    hostname=f"eaglenode-{self.vps_id}",
                     mem_limit=memory_bytes,
                     cpu_period=100000,
                     cpu_quota=int(vps['cpu'] * 100000),
                     cap_add=["ALL"],
                     network=DOCKER_NETWORK,
                     volumes={
-                        f'astrovoidhost-{self.vps_id}': {'bind': '/data', 'mode': 'rw'}
+                        f'eaglenode-{self.vps_id}': {'bind': '/data', 'mode': 'rw'}
                     },
                     restart_policy={"Name": "always"}
                 )
@@ -2405,29 +2405,29 @@ class OSSelectionView(ui.View):
                 if ssh_session_line:
                     bot.db.update_vps(token, {'tmate_session': ssh_session_line})
                     
-                    # Send new SSH details to owner
+                    # Send new 🔐 SSH details to owner
                     try:
                         owner = await bot.fetch_user(int(vps["created_by"]))
-                        embed = discord.Embed(title=f"AstroVoid Host VPS Reinstalled - {self.vps_id}", color=discord.Color.blue())
+                        embed = discord.Embed(title=f"🦅 EagleNode VPS Reinstalled - {self.vps_id}", color=discord.Color.blue())
                         embed.add_field(name="New OS", value=image, inline=True)
-                        embed.add_field(name="New SSH Session", value=f"```{ssh_session_line}```", inline=False)
-                        embed.add_field(name="SSH Password", value=f"||{vps.get('password', 'Not set')}||", inline=False)
+                        embed.add_field(name="New 🔐 SSH Session", value=f"```{ssh_session_line}```", inline=False)
+                        embed.add_field(name="🔐 SSH 🔑 Password", value=f"||{vps.get('password', 'Not set')}||", inline=False)
                         await owner.send(embed=embed)
                     except:
                         pass
             except Exception as e:
                 logger.error(f"Warning: Failed to start tmate session: {e}")
 
-            await status_msg.edit(content="✅ AstroVoid Host VPS reinstalled successfully!")
+            await status_msg.edit(content="✅ 🦅 EagleNode VPS reinstalled successfully!")
             
             try:
-                embed = discord.Embed(title=f"AstroVoid Host VPS Management - {self.vps_id}", color=discord.Color.green())
-                embed.add_field(name="Status", value="ߟ Running", inline=True)
-                embed.add_field(name="Memory", value=f"{vps['memory']}GB", inline=True)
-                embed.add_field(name="CPU", value=f"{vps['cpu']} cores", inline=True)
-                embed.add_field(name="Disk", value=f"{vps['disk']}GB", inline=True)
-                embed.add_field(name="Username", value=vps['username'], inline=True)
-                embed.add_field(name="Created", value=vps['created_at'], inline=True)
+                embed = discord.Embed(title=f"🦅 EagleNode VPS Management - {self.vps_id}", color=discord.Color.green())
+                embed.add_field(name="📊 Status", value="🟢 Running", inline=True)
+                embed.add_field(name="💾 Memory", value=f"{vps['memory']}GB", inline=True)
+                embed.add_field(name="⚙️ CPU", value=f"{vps['cpu']} cores", inline=True)
+                embed.add_field(name="💿 Disk", value=f"{vps['disk']}GB", inline=True)
+                embed.add_field(name="👤 Username", value=vps['username'], inline=True)
+                embed.add_field(name="📅 Created", value=vps['created_at'], inline=True)
                 embed.add_field(name="OS", value=image, inline=True)
                 
                 await self.original_message.edit(embed=embed, view=VPSManagementView(self.vps_id, container.id))
@@ -2436,11 +2436,11 @@ class OSSelectionView(ui.View):
 
         except Exception as e:
             try:
-                await interaction.followup.send(f"❌ Error reinstalling VPS: {str(e)}", ephemeral=True)
+                await interaction.followup.send(f"❌ ❌ Error reinstalling VPS: {str(e)}", ephemeral=True)
             except:
                 try:
                     channel = interaction.channel
-                    await channel.send(f"❌ Error reinstalling AstroVoid Host VPS {self.vps_id}: {str(e)}")
+                    await channel.send(f"❌ ❌ Error reinstalling 🦅 EagleNode VPS {self.vps_id}: {str(e)}")
                 except:
                     logger.error(f"Failed to send error message: {e}")
 
@@ -2457,7 +2457,7 @@ class TransferVPSModal(ui.Modal, title='Transfer VPS'):
         super().__init__()
         self.vps_id = vps_id
         self.new_owner = ui.TextInput(
-            label='New Owner',
+            label='New 👑 Owner',
             placeholder='Enter user ID or @mention',
             required=True
         )
@@ -2509,25 +2509,25 @@ class TransferVPSModal(ui.Modal, title='Transfer VPS'):
 
             bot.db.update_vps(token, {"created_by": str(new_owner.id)})
 
-            await interaction.response.send_message(f"✅ AstroVoid Host VPS {self.vps_id} has been transferred from {old_owner_name} to {new_owner_name}!", ephemeral=True)
+            await interaction.response.send_message(f"✅ 🦅 EagleNode VPS {self.vps_id} has been transferred from {old_owner_name} to {new_owner_name}!", ephemeral=True)
             
             try:
-                embed = discord.Embed(title="AstroVoid Host VPS Transferred to You", color=discord.Color.green())
-                embed.add_field(name="VPS ID", value=self.vps_id, inline=True)
-                embed.add_field(name="Previous Owner", value=old_owner_name, inline=True)
-                embed.add_field(name="Memory", value=f"{vps['memory']}GB", inline=True)
-                embed.add_field(name="CPU", value=f"{vps['cpu']} cores", inline=True)
-                embed.add_field(name="Disk", value=f"{vps['disk']}GB", inline=True)
-                embed.add_field(name="Username", value=vps['username'], inline=True)
+                embed = discord.Embed(title="🦅 EagleNode VPS Transferred to You", color=discord.Color.green())
+                embed.add_field(name="🆔 VPS ID", value=self.vps_id, inline=True)
+                embed.add_field(name="Previous 👑 Owner", value=old_owner_name, inline=True)
+                embed.add_field(name="💾 Memory", value=f"{vps['memory']}GB", inline=True)
+                embed.add_field(name="⚙️ CPU", value=f"{vps['cpu']} cores", inline=True)
+                embed.add_field(name="💿 Disk", value=f"{vps['disk']}GB", inline=True)
+                embed.add_field(name="👤 Username", value=vps['username'], inline=True)
                 embed.add_field(name="Access Token", value=token, inline=False)
-                embed.add_field(name="SSH Password", value=f"||{vps.get('password', 'Not set')}||", inline=False)
+                embed.add_field(name="🔐 SSH 🔑 Password", value=f"||{vps.get('password', 'Not set')}||", inline=False)
                 await new_owner.send(embed=embed)
             except:
-                await interaction.followup.send("Note: Could not send DM to the new owner.", ephemeral=True)
+                await interaction.followup.send("📝 Note: Could not send DM to the new owner.", ephemeral=True)
 
         except Exception as e:
-            logger.error(f"Error in TransferVPSModal: {e}")
-            await interaction.response.send_message(f"❌ Error transferring VPS: {str(e)}", ephemeral=True)
+            logger.error(f"❌ Error in TransferVPSModal: {e}")
+            await interaction.response.send_message(f"❌ ❌ Error transferring VPS: {str(e)}", ephemeral=True)
 
 @bot.hybrid_command(name='manage_vps', description='Manage a VPS instance')
 @app_commands.describe(
@@ -2549,13 +2549,13 @@ async def manage_vps(ctx, vps_id: str):
 
         status = vps['status'].capitalize()
 
-        embed = discord.Embed(title=f"AstroVoid Host VPS Management - {vps_id}", color=discord.Color.blue())
-        embed.add_field(name="Status", value=f"{status} (Container: {container_status})", inline=True)
-        embed.add_field(name="Memory", value=f"{vps['memory']}GB", inline=True)
-        embed.add_field(name="CPU", value=f"{vps['cpu']} cores", inline=True)
-        embed.add_field(name="Disk Allocated", value=f"{vps['disk']}GB", inline=True)
-        embed.add_field(name="Username", value=vps['username'], inline=True)
-        embed.add_field(name="Created", value=vps['created_at'], inline=True)
+        embed = discord.Embed(title=f"🦅 EagleNode VPS Management - {vps_id}", color=discord.Color.blue())
+        embed.add_field(name="📊 Status", value=f"{status} (📦 Container: {container_status})", inline=True)
+        embed.add_field(name="💾 Memory", value=f"{vps['memory']}GB", inline=True)
+        embed.add_field(name="⚙️ CPU", value=f"{vps['cpu']} cores", inline=True)
+        embed.add_field(name="💿 Disk Allocated", value=f"{vps['disk']}GB", inline=True)
+        embed.add_field(name="👤 Username", value=vps['username'], inline=True)
+        embed.add_field(name="📅 Created", value=vps['created_at'], inline=True)
         embed.add_field(name="OS", value=vps.get('os_image', DEFAULT_OS_IMAGE), inline=True)
         embed.add_field(name="Restart Count", value=vps.get('restart_count', 0), inline=True)
 
@@ -2564,8 +2564,8 @@ async def manage_vps(ctx, vps_id: str):
         message = await ctx.send(embed=embed, view=view)
         view.original_message = message
     except Exception as e:
-        logger.error(f"Error in manage_vps: {e}")
-        await ctx.send(f"❌ Error managing VPS: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in manage_vps: {e}")
+        await ctx.send(f"❌ ❌ Error managing VPS: {str(e)}", ephemeral=True)
 
 @bot.hybrid_command(name='transfer_vps', description='Transfer a VPS to another user')
 @app_commands.describe(
@@ -2591,25 +2591,25 @@ async def transfer_vps_command(ctx, vps_id: str, new_owner: discord.Member):
 
         bot.db.update_vps(token, {"created_by": str(new_owner.id)})
 
-        await ctx.send(f"✅ AstroVoid Host VPS {vps_id} has been transferred from {ctx.author.name} to {new_owner.name}!")
+        await ctx.send(f"✅ 🦅 EagleNode VPS {vps_id} has been transferred from {ctx.author.name} to {new_owner.name}!")
 
         try:
-            embed = discord.Embed(title="AstroVoid Host VPS Transferred to You", color=discord.Color.green())
-            embed.add_field(name="VPS ID", value=vps_id, inline=True)
-            embed.add_field(name="Previous Owner", value=ctx.author.name, inline=True)
-            embed.add_field(name="Memory", value=f"{vps['memory']}GB", inline=True)
-            embed.add_field(name="CPU", value=f"{vps['cpu']} cores", inline=True)
-            embed.add_field(name="Disk", value=f"{vps['disk']}GB", inline=True)
-            embed.add_field(name="Username", value=vps['username'], inline=True)
+            embed = discord.Embed(title="🦅 EagleNode VPS Transferred to You", color=discord.Color.green())
+            embed.add_field(name="🆔 VPS ID", value=vps_id, inline=True)
+            embed.add_field(name="Previous 👑 Owner", value=ctx.author.name, inline=True)
+            embed.add_field(name="💾 Memory", value=f"{vps['memory']}GB", inline=True)
+            embed.add_field(name="⚙️ CPU", value=f"{vps['cpu']} cores", inline=True)
+            embed.add_field(name="💿 Disk", value=f"{vps['disk']}GB", inline=True)
+            embed.add_field(name="👤 Username", value=vps['username'], inline=True)
             embed.add_field(name="Access Token", value=token, inline=False)
-            embed.add_field(name="SSH Password", value=f"||{vps.get('password', 'Not set')}||", inline=False)
+            embed.add_field(name="🔐 SSH 🔑 Password", value=f"||{vps.get('password', 'Not set')}||", inline=False)
             await new_owner.send(embed=embed)
         except:
-            await ctx.send("Note: Could not send DM to the new owner.", ephemeral=True)
+            await ctx.send("📝 Note: Could not send DM to the new owner.", ephemeral=True)
 
     except Exception as e:
-        logger.error(f"Error in transfer_vps_command: {e}")
-        await ctx.send(f"❌ Error transferring VPS: {str(e)}", ephemeral=True)
+        logger.error(f"❌ Error in transfer_vps_command: {e}")
+        await ctx.send(f"❌ ❌ Error transferring VPS: {str(e)}", ephemeral=True)
 
 @bot.event
 async def on_command_error(ctx, error):
