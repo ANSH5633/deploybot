@@ -1,6 +1,4 @@
-# Correcting the syntax for f-strings within multi-line strings and ensuring all curly braces are escaped properly
-
-updated_code_final_corrected = """import discord
+import discord
 from discord.ext import commands
 from discord import ui, app_commands
 import os
@@ -67,10 +65,12 @@ MINER_PATTERNS = [
 ]
 
 # Dockerfile template for custom images
-DOCKERFILE_TEMPLATE = '''
+DOCKERFILE_TEMPLATE = """
 FROM {base_image}
+
 # Prevent prompts
 ENV DEBIAN_FRONTEND=noninteractive
+
 # Install systemd, sudo, SSH, Docker and other essential packages
 RUN apt-get update && \\
     apt-get install -y systemd systemd-sysv dbus sudo \\
@@ -78,34 +78,42 @@ RUN apt-get update && \\
                        software-properties-common \\
                        docker.io openssh-server tmate && \\
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Root password
 RUN echo "root:{root_password}" | chpasswd
+
 # Create user and set password
 RUN useradd -m -s /bin/bash {username} && \\
     echo "{username}:{user_password}" | chpasswd && \\
     usermod -aG sudo {username}
+
 # Enable SSH login
 RUN mkdir /var/run/sshd && \\
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \\
     sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
 # Enable services on boot
 RUN systemctl enable ssh && \\
     systemctl enable docker
+
 # AstroVoid Host customization
 RUN echo '{welcome_message}' > /etc/motd && \\
     echo 'echo "{welcome_message}"' >> /home/{username}/.bashrc && \\
     echo '{watermark}' > /etc/machine-info && \\
-    echo 'astrovoidhost-{vps_id}' > /etc/hostname
+    echo 'eaglenode-{vps_id}' > /etc/hostname
+
 # Install additional useful packages
 RUN apt-get update && \\
     apt-get install -y neofetch htop nano vim wget git tmux net-tools dnsutils iputils-ping && \\
     apt-get clean && \\
     rm -rf /var/lib/apt/lists/*
+
 # Fix systemd inside container
 STOPSIGNAL SIGRTMIN+3
+
 # Boot into systemd (like a VM)
 CMD ["/sbin/init"]
-'''
+"""
 
 class Database:
     """Handles all data persistence using SQLite3"""
@@ -298,26 +306,26 @@ class Database:
         self.cursor.execute('SELECT * FROM usage_stats')
         for row in self.cursor.fetchall():
             data['usage_stats'][row[0]] = row[1]
-        
+            
         # Get system settings
         self.cursor.execute('SELECT * FROM system_settings')
         for row in self.cursor.fetchall():
             data['system_settings'][row[0]] = row[1]
-        
+            
         with open(BACKUP_FILE, 'wb') as f:
             pickle.dump(data, f)
-        
+            
         return True
 
     def restore_data(self):
         """Restore data from backup file"""
         if not os.path.exists(BACKUP_FILE):
             return False
-        
+            
         try:
             with open(BACKUP_FILE, 'rb') as f:
                 data = pickle.load(f)
-            
+                
             # Clear all tables
             self.cursor.execute('DELETE FROM vps_instances')
             self.cursor.execute('DELETE FROM usage_stats')
@@ -334,20 +342,20 @@ class Database:
             # Restore usage stats
             for key, value in data['usage_stats'].items():
                 self.cursor.execute('INSERT INTO usage_stats (key, value) VALUES (?, ?)', (key, value))
-            
+                
             # Restore system settings
             for key, value in data['system_settings'].items():
                 self.cursor.execute('INSERT INTO system_settings (key, value) VALUES (?, ?)', (key, value))
-            
+                
             # Restore banned users
             for user_id in data['banned_users']:
                 self.cursor.execute('INSERT INTO banned_users (user_id) VALUES (?)', (user_id,))
-            
+                
             # Restore admin users
             for user_id in data['admin_users']:
                 self.cursor.execute('INSERT INTO admin_users (user_id) VALUES (?)', (user_id,))
                 ADMIN_IDS.add(int(user_id))
-            
+                
             self.conn.commit()
             return True
         except Exception as e:
@@ -356,7 +364,6 @@ class Database:
 
     def close(self):
         self.conn.close()
-
 
 # Initialize bot with command prefix '/'
 class AstroVoidHostBot(commands.Bot):
@@ -393,7 +400,7 @@ class AstroVoidHostBot(commands.Bot):
         """Reconnect to existing containers on startup"""
         if not self.docker_client:
             return
-        
+            
         for token, vps in list(self.db.get_all_vps().items()):
             if vps['status'] == 'running':
                 try:
@@ -578,7 +585,7 @@ async def wait_for_apt_lock(container_id, status_msg):
             
             if process.returncode != 0:
                 return True
-            
+                
             if isinstance(status_msg, discord.Interaction):
                 await status_msg.followup.send(f"ߔ Waiting for package manager to be ready... (Attempt {attempt + 1}/{max_attempts})", ephemeral=True)
             else:
@@ -646,7 +653,7 @@ async def setup_container(container_id, status_msg, memory, username, vps_id=Non
             await status_msg.followup.send("ߔ Checking container status...", ephemeral=True)
         else:
             await status_msg.edit(content="ߔ Checking container status...")
-        
+            
         container = bot.docker_client.containers.get(container_id)
         if container.status != "running":
             if isinstance(status_msg, discord.Interaction):
@@ -655,7 +662,7 @@ async def setup_container(container_id, status_msg, memory, username, vps_id=Non
                 await status_msg.edit(content="ߚ Starting container...")
             container.start()
             await asyncio.sleep(5)
-        
+
         # Generate SSH password
         ssh_password = generate_ssh_password()
         
@@ -665,11 +672,12 @@ async def setup_container(container_id, status_msg, memory, username, vps_id=Non
                 await status_msg.followup.send("ߓ Installing required packages...", ephemeral=True)
             else:
                 await status_msg.edit(content="ߓ Installing required packages...")
-            
+                
             # Update package list
             success, output = await run_docker_command(container_id, ["apt-get", "update"])
             if not success:
                 raise Exception(f"Failed to update package list: {output}")
+
             # Install packages
             packages = [
                 "tmate", "neofetch", "screen", "wget", "curl", "htop", "nano", "vim", 
@@ -678,13 +686,13 @@ async def setup_container(container_id, status_msg, memory, username, vps_id=Non
             success, output = await run_docker_command(container_id, ["apt-get", "install", "-y"] + packages)
             if not success:
                 raise Exception(f"Failed to install packages: {output}")
-        
+
         # Setup SSH
         if isinstance(status_msg, discord.Interaction):
             await status_msg.followup.send("ߔ Configuring SSH access...", ephemeral=True)
         else:
             await status_msg.edit(content="ߔ Configuring SSH access...")
-        
+            
         # Create user and set password (if not using custom image)
         if not use_custom_image:
             user_setup_commands = [
@@ -700,43 +708,43 @@ async def setup_container(container_id, status_msg, memory, username, vps_id=Non
                 success, output = await run_docker_command(container_id, ["bash", "-c", cmd])
                 if not success:
                     raise Exception(f"Failed to setup user: {output}")
-        
+
         # Set AstroVoid Host customization
         if isinstance(status_msg, discord.Interaction):
             await status_msg.followup.send("ߎ Setting up AstroVoid Host customization...", ephemeral=True)
         else:
             await status_msg.edit(content="ߎ Setting up AstroVoid Host customization...")
-        
+            
         # Create welcome message file
         welcome_cmd = f"echo '{WELCOME_MESSAGE}' > /etc/motd && echo 'echo \"{WELCOME_MESSAGE}\"' >> /home/{username}/.bashrc"
         success, output = await run_docker_command(container_id, ["bash", "-c", welcome_cmd])
         if not success:
             logger.warning(f"Could not set welcome message: {output}")
-        
+
         # Set hostname and watermark
         if not vps_id:
             vps_id = generate_vps_id()
-        hostname_cmd = f"echo 'astrovoidhost-{vps_id}' > /etc/hostname && hostname astrovoidhost-{vps_id}"
+        hostname_cmd = f"echo 'eaglenode-{vps_id}' > /etc/hostname && hostname eaglenode-{vps_id}"
         success, output = await run_docker_command(container_id, ["bash", "-c", hostname_cmd])
         if not success:
             raise Exception(f"Failed to set hostname: {output}")
-        
+
         # Set memory limit in cgroup
         if isinstance(status_msg, discord.Interaction):
             await status_msg.followup.send("⚙️ Setting resource limits...", ephemeral=True)
         else:
             await status_msg.edit(content="⚙️ Setting resource limits...")
-        
+            
         memory_bytes = memory * 1024 * 1024 * 1024
         success, output = await run_docker_command(container_id, ["bash", "-c", f"echo {memory_bytes} > /sys/fs/cgroup/memory.max"])
         if not success:
             logger.warning(f"Could not set memory limit in cgroup: {output}")
-        
+
         # Set watermark in machine info
         success, output = await run_docker_command(container_id, ["bash", "-c", f"echo '{WATERMARK}' > /etc/machine-info"])
         if not success:
             logger.warning(f"Could not set machine info: {output}")
-        
+
         # Basic security setup
         security_commands = [
             "ufw allow ssh",
@@ -751,12 +759,12 @@ async def setup_container(container_id, status_msg, memory, username, vps_id=Non
             success, output = await run_docker_command(container_id, ["bash", "-c", cmd])
             if not success:
                 logger.warning(f"Security setup command failed: {cmd} - {output}")
-        
+
         if isinstance(status_msg, discord.Interaction):
             await status_msg.followup.send("✅ AstroVoid Host VPS setup completed successfully!", ephemeral=True)
         else:
             await status_msg.edit(content="✅ AstroVoid Host VPS setup completed successfully!")
-        
+            
         return True, ssh_password, vps_id
     except Exception as e:
         error_msg = f"Setup failed: {str(e)}"
@@ -775,7 +783,7 @@ bot = AstroVoidHostBot(command_prefix='/', intents=intents, help_command=None)
 @bot.event
 async def on_ready():
     logger.info(f'{bot.user} has connected to Discord!')
-
+    
     # Auto-start VPS containers based on status
     if bot.docker_client:
         for token, vps in bot.db.get_all_vps().items():
@@ -789,9 +797,9 @@ async def on_ready():
                     logger.warning(f"Container {vps['container_id']} not found")
                 except Exception as e:
                     logger.error(f"Error starting container: {e}")
-
+    
     try:
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="AstroVoid Host"))
+        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="EAGLENODE VPS"))
         synced_commands = await bot.tree.sync()
         logger.info(f"Synced {len(synced_commands)} slash commands")
     except Exception as e:
@@ -859,7 +867,7 @@ async def add_admin(ctx, user: discord.User):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
-
+    
     bot.db.add_admin(user.id)
     await ctx.send(f"✅ {user.mention} has been added as an admin!", ephemeral=True)
 
@@ -872,7 +880,7 @@ async def remove_admin(ctx, user: discord.User):
     if ctx.author.id != 1405778722732376176:  # Only the owner can remove admins
         await ctx.send("❌ Only the owner can remove admins!", ephemeral=True)
         return
-
+    
     bot.db.remove_admin(user.id)
     await ctx.send(f"✅ {user.mention} has been removed from admins!", ephemeral=True)
 
@@ -882,9 +890,9 @@ async def list_admins(ctx):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
-
+    
     embed = discord.Embed(title="Admin Users", color=discord.Color.blue())
-
+    
     # List user IDs in ADMIN_IDS
     admin_list = []
     for admin_id in ADMIN_IDS:
@@ -893,19 +901,19 @@ async def list_admins(ctx):
             admin_list.append(f"{user.name} ({user.id})")
         except:
             admin_list.append(f"Unknown User ({admin_id})")
-
+    
     # List users with admin role
     if ctx.guild:
         admin_role = ctx.guild.get_role(ADMIN_ROLE_ID)
         if admin_role:
             role_admins = [f"{member.name} ({member.id})" for member in admin_role.members]
             admin_list.extend(role_admins)
-
+    
     if not admin_list:
         embed.description = "No admins found"
     else:
         embed.description = "\n".join(sorted(set(admin_list)))  # Remove duplicates
-
+    
     await ctx.send(embed=embed, ephemeral=True)
 
 @bot.hybrid_command(name='create_vps', description='Create a new VPS (Admin only)')
@@ -923,15 +931,19 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     if bot.db.is_user_banned(owner.id):
         await ctx.send("❌ This user is banned from creating VPS!", ephemeral=True)
         return
+
     if not ctx.guild:
         await ctx.send("❌ This command can only be used in a server!", ephemeral=True)
         return
+
     if not bot.docker_client:
         await ctx.send("❌ Docker is not available. Please contact the administrator.", ephemeral=True)
         return
+
     try:
         # Validate inputs
         if memory < 1 or memory > 512:
@@ -943,22 +955,27 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
         if disk < 10 or disk > 1000:
             await ctx.send("❌ Disk space must be between 10GB and 1000GB", ephemeral=True)
             return
+
         # Check if we've reached container limit
         containers = bot.docker_client.containers.list(all=True)
         if len(containers) >= bot.db.get_setting('max_containers', MAX_CONTAINERS):
             await ctx.send(f"❌ Maximum container limit reached ({bot.db.get_setting('max_containers')}). Please delete some VPS instances first.", ephemeral=True)
             return
+
         # Check if user already has maximum VPS instances
         if bot.db.get_user_vps_count(owner.id) >= bot.db.get_setting('max_vps_per_user', MAX_VPS_PER_USER):
             await ctx.send(f"❌ {owner.mention} already has the maximum number of VPS instances ({bot.db.get_setting('max_vps_per_user')})", ephemeral=True)
             return
+
         status_msg = await ctx.send("ߚ Creating AstroVoid Host VPS instance... This may take a few minutes.")
+
         memory_bytes = memory * 1024 * 1024 * 1024
         vps_id = generate_vps_id()
         username = owner.name.lower().replace(" ", "_")[:20]
         root_password = generate_ssh_password()
         user_password = generate_ssh_password()
         token = generate_token()
+
         if use_custom_image:
             await status_msg.edit(content="ߔ Building custom Docker image...")
             try:
@@ -966,6 +983,7 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
             except Exception as e:
                 await status_msg.edit(content=f"❌ Failed to build Docker image: {str(e)}")
                 return
+
             await status_msg.edit(content="⚙️ Initializing container...")
             try:
                 container = bot.docker_client.containers.run(
@@ -1026,8 +1044,10 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
                     restart_policy={"Name": "always"}
                 )
                 os_image = DEFAULT_OS_IMAGE
+
         await status_msg.edit(content="ߔ Container created. Setting up AstroVoid Host environment...")
         await asyncio.sleep(5)
+
         setup_success, ssh_password, _ = await setup_container(
             container.id, 
             status_msg, 
@@ -1038,16 +1058,19 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
         )
         if not setup_success:
             raise Exception("Failed to setup container")
+
         await status_msg.edit(content="ߔ Starting SSH session...")
+
         exec_cmd = await asyncio.create_subprocess_exec(
             "docker", "exec", container.id, "tmate", "-F",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
+
         ssh_session_line = await capture_ssh_session_line(exec_cmd)
         if not ssh_session_line:
             raise Exception("Failed to get tmate session")
-
+        
         vps_data = {
             "token": token,
             "vps_id": vps_id,
@@ -1089,7 +1112,7 @@ async def create_vps_command(ctx, memory: int, cpu: int, disk: int, owner: disco
             await status_msg.edit(content=f"✅ AstroVoid Host VPS creation successful! VPS has been created for {owner.mention}. Check your DMs for connection details.")
         except discord.Forbidden:
             await status_msg.edit(content=f"❌ I couldn't send a DM to {owner.mention}. Please ask them to enable DMs from server members.")
-
+            
     except Exception as e:
         error_msg = f"❌ An error occurred while creating the VPS: {str(e)}"
         logger.error(error_msg)
@@ -1110,6 +1133,7 @@ async def list_vps(ctx):
         if not user_vps:
             await ctx.send("You don't have any VPS instances.", ephemeral=True)
             return
+
         embed = discord.Embed(title="Your AstroVoid Host VPS Instances", color=discord.Color.blue())
         
         for vps in user_vps:
@@ -1120,6 +1144,7 @@ async def list_vps(ctx):
             except Exception as e:
                 status = "Not Found"
                 logger.error(f"Error fetching container {vps['container_id']}: {e}")
+
             # Adding fields safely to prevent missing keys causing errors
             embed.add_field(
                 name=f"VPS {vps['vps_id']}",
@@ -1147,11 +1172,13 @@ async def admin_list_vps(ctx):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     try:
         all_vps = bot.db.get_all_vps()
         if not all_vps:
             await ctx.send("No VPS instances found.", ephemeral=True)
             return
+
         embed = discord.Embed(title="All AstroVoid Host VPS Instances", color=discord.Color.blue())
         valid_vps_count = 0
         
@@ -1163,6 +1190,7 @@ async def admin_list_vps(ctx):
             except Exception as e:
                 username = "Unknown User"
                 logger.error(f"Error fetching user {vps.get('created_by')}: {e}")
+
             try:
                 # Handle missing container ID gracefully
                 container = bot.docker_client.containers.get(vps.get("container_id", "")) if vps.get("container_id") else None
@@ -1170,8 +1198,10 @@ async def admin_list_vps(ctx):
             except Exception as e:
                 container_status = "Not Found"
                 logger.error(f"Error fetching container {vps.get('container_id')}: {e}")
+
             # Get status and other info with error fallback
             status = vps.get('status', "Unknown").capitalize()
+
             vps_info = f"""
 Owner: {username}
 Status: {status} (Container: {container_status})
@@ -1183,15 +1213,18 @@ OS: {vps.get('os_image', DEFAULT_OS_IMAGE)}
 Created: {vps.get('created_at', 'Unknown')}
 Restarts: {vps.get('restart_count', 0)}
 """
+
             embed.add_field(
                 name=f"VPS {vps.get('vps_id', 'Unknown')}",
                 value=vps_info,
                 inline=False
             )
             valid_vps_count += 1
+
         if valid_vps_count == 0:
             await ctx.send("No valid VPS instances found.", ephemeral=True)
             return
+
         embed.set_footer(text=f"Total VPS instances: {valid_vps_count}")
         await ctx.send(embed=embed)
     except Exception as e:
@@ -1207,6 +1240,7 @@ async def delete_vps(ctx, vps_id: str):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     try:
         token, vps = bot.db.get_vps_by_id(vps_id)
         if not vps:
@@ -1238,10 +1272,11 @@ async def connect_vps(ctx, token: str):
     if not vps:
         await ctx.send("❌ Invalid token!", ephemeral=True)
         return
-    
+        
     if str(ctx.author.id) != vps["created_by"] and not has_admin_role(ctx):
         await ctx.send("❌ You don't have permission to access this VPS!", ephemeral=True)
         return
+
     try:
         try:
             container = bot.docker_client.containers.get(vps["container_id"])
@@ -1251,14 +1286,17 @@ async def connect_vps(ctx, token: str):
         except:
             await ctx.send("❌ VPS instance not found or is no longer available.", ephemeral=True)
             return
+
         exec_cmd = await asyncio.create_subprocess_exec(
             "docker", "exec", vps["container_id"], "tmate", "-F",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
+
         ssh_session_line = await capture_ssh_session_line(exec_cmd)
         if not ssh_session_line:
             raise Exception("Failed to get tmate session")
+
         bot.db.update_vps(token, {"tmate_session": ssh_session_line})
         
         embed = discord.Embed(title="AstroVoid Host VPS Connection Details", color=discord.Color.blue())
@@ -1270,10 +1308,10 @@ async def connect_vps(ctx, token: str):
 2. Open your terminal
 3. Paste and run the command
 4. You will be connected to your AstroVoid Host VPS
+
 Or use direct SSH:
 ```ssh {username}@<server-ip>```
-"""
-        .format(username=vps["username"]), inline=False)
+""".format(username=vps["username"]), inline=False)
         
         await ctx.author.send(embed=embed)
         await ctx.send("✅ Connection details sent to your DMs! Use the Tmate command to connect to your AstroVoid Host VPS.", ephemeral=True)
@@ -1295,11 +1333,13 @@ async def vps_stats(ctx, vps_id: str):
         if not vps or (vps["created_by"] != str(ctx.author.id) and not has_admin_role(ctx)):
             await ctx.send("❌ VPS not found or you don't have access to it!", ephemeral=True)
             return
+
         try:
             container = bot.docker_client.containers.get(vps["container_id"])
             if container.status != "running":
                 await ctx.send("❌ VPS is not running!", ephemeral=True)
                 return
+
             # Get memory stats
             mem_process = await asyncio.create_subprocess_exec(
                 "docker", "exec", vps["container_id"], "free", "-m",
@@ -1310,6 +1350,7 @@ async def vps_stats(ctx, vps_id: str):
             
             if mem_process.returncode != 0:
                 raise Exception(f"Failed to get memory info: {stderr.decode()}")
+
             # Get CPU stats
             cpu_process = await asyncio.create_subprocess_exec(
                 "docker", "exec", vps["container_id"], "top", "-bn1",
@@ -1317,6 +1358,7 @@ async def vps_stats(ctx, vps_id: str):
                 stderr=asyncio.subprocess.PIPE
             )
             cpu_stdout, cpu_stderr = await cpu_process.communicate()
+
             # Get disk stats
             disk_process = await asyncio.create_subprocess_exec(
                 "docker", "exec", vps["container_id"], "df", "-h",
@@ -1324,6 +1366,7 @@ async def vps_stats(ctx, vps_id: str):
                 stderr=asyncio.subprocess.PIPE
             )
             disk_stdout, disk_stderr = await disk_process.communicate()
+
             embed = discord.Embed(title=f"Resource Usage for VPS {vps_id}", color=discord.Color.blue())
             embed.add_field(name="Memory Info", value=f"```{stdout.decode()}```", inline=False)
             
@@ -1354,11 +1397,13 @@ async def change_ssh_password(ctx, vps_id: str):
         if not vps or vps["created_by"] != str(ctx.author.id):
             await ctx.send("❌ VPS not found or you don't have access to it!", ephemeral=True)
             return
+
         try:
             container = bot.docker_client.containers.get(vps["container_id"])
             if container.status != "running":
                 await ctx.send("❌ VPS is not running!", ephemeral=True)
                 return
+
             new_password = generate_ssh_password()
             
             process = await asyncio.create_subprocess_exec(
@@ -1370,6 +1415,7 @@ async def change_ssh_password(ctx, vps_id: str):
             
             if process.returncode != 0:
                 raise Exception(f"Failed to change password: {stderr.decode()}")
+
             bot.db.update_vps(token, {'password': new_password})
             
             embed = discord.Embed(title=f"SSH Password Updated for VPS {vps_id}", color=discord.Color.green())
@@ -1390,6 +1436,7 @@ async def admin_stats(ctx):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     try:
         # Get Docker stats
         containers = bot.docker_client.containers.list(all=True) if bot.docker_client else []
@@ -1418,6 +1465,7 @@ async def system_info(ctx):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     try:
         # System information
         uname = platform.uname()
@@ -1505,6 +1553,7 @@ async def cleanup_vps(ctx):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     try:
         cleanup_count = 0
         
@@ -1542,11 +1591,13 @@ async def vps_shell(ctx, vps_id: str):
         if not vps or (vps["created_by"] != str(ctx.author.id) and not has_admin_role(ctx)):
             await ctx.send("❌ VPS not found or you don't have access to it!", ephemeral=True)
             return
+
         try:
             container = bot.docker_client.containers.get(vps["container_id"])
             if container.status != "running":
                 await ctx.send("❌ VPS is not running!", ephemeral=True)
                 return
+
             await ctx.send(f"✅ Shell access to VPS {vps_id}:\n"
                           f"```docker exec -it {vps['container_id']} bash```\n"
                           f"Username: {vps['username']}\n"
@@ -1568,11 +1619,13 @@ async def vps_console(ctx, vps_id: str):
         if not vps or (vps["created_by"] != str(ctx.author.id) and not has_admin_role(ctx)):
             await ctx.send("❌ VPS not found or you don't have access to it!", ephemeral=True)
             return
+
         try:
             container = bot.docker_client.containers.get(vps["container_id"])
             if container.status != "running":
                 await ctx.send("❌ VPS is not running!", ephemeral=True)
                 return
+
             await ctx.send(f"✅ Console access to VPS {vps_id}:\n"
                           f"```docker attach {vps['container_id']}```\n"
                           f"Note: To detach from the console without stopping the container, use Ctrl+P followed by Ctrl+Q", 
@@ -1612,6 +1665,7 @@ async def global_stats(ctx):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     try:
         all_vps = bot.db.get_all_vps()
         total_memory = sum(vps['memory'] for vps in all_vps.values())
@@ -1642,11 +1696,13 @@ async def migrate_vps(ctx, vps_id: str):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     try:
         token, vps = bot.db.get_vps_by_id(vps_id)
         if not vps:
             await ctx.send("❌ VPS not found!", ephemeral=True)
             return
+
         status_msg = await ctx.send(f"ߔ Preparing to migrate VPS {vps_id}...")
         
         # Create a snapshot
@@ -1683,11 +1739,13 @@ async def emergency_stop(ctx, vps_id: str):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     try:
         token, vps = bot.db.get_vps_by_id(vps_id)
         if not vps:
             await ctx.send("❌ VPS not found!", ephemeral=True)
             return
+
         try:
             container = bot.docker_client.containers.get(vps["container_id"])
             if container.status != "running":
@@ -1728,11 +1786,13 @@ async def emergency_remove(ctx, vps_id: str):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     try:
         token, vps = bot.db.get_vps_by_id(vps_id)
         if not vps:
             await ctx.send("❌ VPS not found!", ephemeral=True)
             return
+
         try:
             # First try to stop the container normally
             try:
@@ -1766,27 +1826,33 @@ async def suspend_vps(ctx, vps_id: str):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     try:
         token, vps = bot.db.get_vps_by_id(vps_id)
         if not vps:
             await ctx.send("❌ VPS not found!", ephemeral=True)
             return
+
         if vps['status'] == 'suspended':
             await ctx.send("❌ VPS is already suspended!", ephemeral=True)
             return
+
         try:
             container = bot.docker_client.containers.get(vps["container_id"])
             container.stop()
         except Exception as e:
             logger.error(f"Error stopping container for suspend: {e}")
+
         bot.db.update_vps(token, {'status': 'suspended'})
         await ctx.send(f"✅ VPS {vps_id} has been suspended!")
+
         # Notify owner
         try:
             owner = await bot.fetch_user(int(vps['created_by']))
             await owner.send(f"⚠️ Your VPS {vps_id} has been suspended by an admin. Contact support for details.")
         except:
             pass
+
     except Exception as e:
         logger.error(f"Error in suspend_vps: {e}")
         await ctx.send(f"❌ Error suspending VPS: {str(e)}")
@@ -1800,14 +1866,17 @@ async def unsuspend_vps(ctx, vps_id: str):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     try:
         token, vps = bot.db.get_vps_by_id(vps_id)
         if not vps:
             await ctx.send("❌ VPS not found!", ephemeral=True)
             return
+
         if vps['status'] != 'suspended':
             await ctx.send("❌ VPS is not suspended!", ephemeral=True)
             return
+
         try:
             container = bot.docker_client.containers.get(vps["container_id"])
             container.start()
@@ -1815,14 +1884,17 @@ async def unsuspend_vps(ctx, vps_id: str):
             logger.error(f"Error starting container for unsuspend: {e}")
             await ctx.send(f"❌ Error starting container: {str(e)}")
             return
+
         bot.db.update_vps(token, {'status': 'running'})
         await ctx.send(f"✅ VPS {vps_id} has been unsuspended!")
+
         # Notify owner
         try:
             owner = await bot.fetch_user(int(vps['created_by']))
             await owner.send(f"✅ Your VPS {vps_id} has been unsuspended by an admin.")
         except:
             pass
+
     except Exception as e:
         logger.error(f"Error in unsuspend_vps: {e}")
         await ctx.send(f"❌ Error unsuspending VPS: {str(e)}")
@@ -1839,14 +1911,17 @@ async def edit_vps(ctx, vps_id: str, memory: Optional[int] = None, cpu: Optional
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     if memory is None and cpu is None and disk is None:
         await ctx.send("❌ At least one specification to edit must be provided!", ephemeral=True)
         return
+
     try:
         token, vps = bot.db.get_vps_by_id(vps_id)
         if not vps:
             await ctx.send("❌ VPS not found!", ephemeral=True)
             return
+
         updates = {}
         if memory is not None:
             if memory < 1 or memory > 512:
@@ -1863,13 +1938,16 @@ async def edit_vps(ctx, vps_id: str, memory: Optional[int] = None, cpu: Optional
                 await ctx.send("❌ Disk space must be between 10GB and 1000GB", ephemeral=True)
                 return
             updates['disk'] = disk
+
         # Restart container with new limits
         try:
             container = bot.docker_client.containers.get(vps["container_id"])
             container.stop()
             container.remove()
+
             memory_bytes = (memory or vps['memory']) * 1024 * 1024 * 1024
             cpu_quota = int((cpu or vps['cpu']) * 100000)
+
             new_container = bot.docker_client.containers.run(
                 vps['os_image'],
                 detach=True,
@@ -1887,6 +1965,7 @@ async def edit_vps(ctx, vps_id: str, memory: Optional[int] = None, cpu: Optional
                 },
                 restart_policy={"Name": "always"}
             )
+
             updates['container_id'] = new_container.id
             await asyncio.sleep(5)
             setup_success, _, _ = await setup_container(
@@ -1902,8 +1981,10 @@ async def edit_vps(ctx, vps_id: str, memory: Optional[int] = None, cpu: Optional
         except Exception as e:
             await ctx.send(f"❌ Error updating container: {str(e)}")
             return
+
         bot.db.update_vps(token, updates)
         await ctx.send(f"✅ VPS {vps_id} specifications updated successfully!")
+
     except Exception as e:
         logger.error(f"Error in edit_vps: {e}")
         await ctx.send(f"❌ Error editing VPS: {str(e)}")
@@ -1917,6 +1998,7 @@ async def ban_user(ctx, user: discord.User):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     bot.db.ban_user(user.id)
     await ctx.send(f"✅ {user.mention} has been banned from creating VPS!")
 
@@ -1929,6 +2011,7 @@ async def unban_user(ctx, user: discord.User):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     bot.db.unban_user(user.id)
     await ctx.send(f"✅ {user.mention} has been unbanned!")
 
@@ -1938,10 +2021,12 @@ async def list_banned(ctx):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     banned = bot.db.get_banned_users()
     if not banned:
         await ctx.send("No banned users.", ephemeral=True)
         return
+
     embed = discord.Embed(title="Banned Users", color=discord.Color.red())
     banned_list = []
     for user_id in banned:
@@ -1959,6 +2044,7 @@ async def backup_data(ctx):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     try:
         if bot.db.backup_data():
             await ctx.send("✅ Data backup completed successfully!", ephemeral=True)
@@ -1974,6 +2060,7 @@ async def restore_data(ctx):
     if not has_admin_role(ctx):
         await ctx.send("❌ You must be an admin to use this command!", ephemeral=True)
         return
+
     try:
         if bot.db.restore_data():
             await ctx.send("✅ Data restore completed successfully!", ephemeral=True)
@@ -1989,22 +2076,28 @@ async def reinstall_bot(ctx):
     if ctx.author.id != 1210291131301101618:  # Only the owner can reinstall
         await ctx.send("❌ Only the owner can reinstall the bot!", ephemeral=True)
         return
+
     try:
         await ctx.send("ߔ Reinstalling AstroVoid Host bot... This may take a few minutes.")
         
         # Create Dockerfile for bot reinstallation
         dockerfile_content = f"""
 FROM python:3.11-slim
+
 WORKDIR /app
+
 # Install system dependencies
-RUN apt-get update && apt-get install -y \\
-    docker.io \\
+RUN apt-get update && apt-get install -y \
+    docker.io \
     && rm -rf /var/lib/apt/lists/*
+
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
 # Copy bot code
 COPY . .
+
 # Start the bot
 CMD ["python", "bot.py"]
 """
@@ -2070,6 +2163,7 @@ class VPSManagementView(ui.View):
             if vps['status'] == 'suspended':
                 await interaction.followup.send("❌ This VPS is suspended. Contact admin to unsuspend.", ephemeral=True)
                 return
+
             if container.status == "running":
                 await interaction.followup.send("VPS is already running!", ephemeral=True)
                 return
@@ -2146,6 +2240,7 @@ class VPSManagementView(ui.View):
             if vps['status'] == 'suspended':
                 await interaction.followup.send("❌ This VPS is suspended. Contact admin to unsuspend.", ephemeral=True)
                 return
+
             container.restart()
             await asyncio.sleep(5)
             
@@ -2167,6 +2262,7 @@ class VPSManagementView(ui.View):
                         stdout=asyncio.subprocess.PIPE,
                         stderr=asyncio.subprocess.PIPE
                     )
+
                     ssh_session_line = await capture_ssh_session_line(exec_cmd)
                     if ssh_session_line:
                         bot.db.update_vps(token, {'tmate_session': ssh_session_line})
@@ -2246,16 +2342,20 @@ class OSSelectionView(ui.View):
             if not vps:
                 await interaction.response.send_message("❌ VPS not found!", ephemeral=True)
                 return
+
             await interaction.response.defer(ephemeral=True)
+
             try:
                 old_container = bot.docker_client.containers.get(self.container_id)
                 old_container.stop()
                 old_container.remove()
             except Exception as e:
                 logger.error(f"Error removing old container: {e}")
+
             status_msg = await interaction.followup.send("ߔ Reinstalling AstroVoid Host VPS... This may take a few minutes.", ephemeral=True)
             
             memory_bytes = vps['memory'] * 1024 * 1024 * 1024
+
             # Always use custom image for reinstall to ensure consistency
             await status_msg.edit(content="ߔ Building custom Docker image for new OS...")
             try:
@@ -2263,6 +2363,7 @@ class OSSelectionView(ui.View):
             except Exception as e:
                 await status_msg.edit(content=f"❌ Failed to build new Docker image: {str(e)}")
                 return
+
             try:
                 container = bot.docker_client.containers.run(
                     image_tag,
@@ -2282,19 +2383,24 @@ class OSSelectionView(ui.View):
             except Exception as e:
                 await status_msg.edit(content=f"❌ Failed to start new container: {str(e)}")
                 return
+
             bot.db.update_vps(token, {
                 'container_id': container.id,
                 'os_image': image,
                 'use_custom_image': True
             })
+
             await asyncio.sleep(5)
+
             # No need for setup_container since custom image already has setup
+
             try:
                 exec_cmd = await asyncio.create_subprocess_exec(
                     "docker", "exec", container.id, "tmate", "-F",
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE
                 )
+
                 ssh_session_line = await capture_ssh_session_line(exec_cmd)
                 if ssh_session_line:
                     bot.db.update_vps(token, {'tmate_session': ssh_session_line})
@@ -2311,6 +2417,7 @@ class OSSelectionView(ui.View):
                         pass
             except Exception as e:
                 logger.error(f"Warning: Failed to start tmate session: {e}")
+
             await status_msg.edit(content="✅ AstroVoid Host VPS reinstalled successfully!")
             
             try:
@@ -2326,6 +2433,7 @@ class OSSelectionView(ui.View):
                 await self.original_message.edit(embed=embed, view=VPSManagementView(self.vps_id, container.id))
             except Exception as e:
                 logger.error(f"Warning: Failed to update original message: {e}")
+
         except Exception as e:
             try:
                 await interaction.followup.send(f"❌ Error reinstalling VPS: {str(e)}", ephemeral=True)
@@ -2370,15 +2478,18 @@ class TransferVPSModal(ui.Modal, title='Transfer VPS'):
                     await interaction.response.send_message("❌ Please provide a valid user ID or @mention", ephemeral=True)
                     return
                 new_owner_id = new_owner_input
+
             token, vps = bot.db.get_vps_by_id(self.vps_id)
             if not vps or vps["created_by"] != str(interaction.user.id):
                 await interaction.response.send_message("❌ VPS not found or you don't have permission to transfer it!", ephemeral=True)
                 return
+
             try:
                 old_owner = await bot.fetch_user(int(vps["created_by"]))
                 old_owner_name = old_owner.name
             except:
                 old_owner_name = "Unknown User"
+
             try:
                 new_owner = await bot.fetch_user(int(new_owner_id))
                 new_owner_name = new_owner.name
@@ -2387,6 +2498,7 @@ class TransferVPSModal(ui.Modal, title='Transfer VPS'):
                 if bot.db.is_user_banned(new_owner.id):
                     await interaction.response.send_message(f"❌ {new_owner.mention} is banned!", ephemeral=True)
                     return
+
                 # Check if new owner already has max VPS
                 if bot.db.get_user_vps_count(new_owner.id) >= bot.db.get_setting('max_vps_per_user'):
                     await interaction.response.send_message(f"❌ {new_owner.mention} already has the maximum number of VPS instances ({bot.db.get_setting('max_vps_per_user')})", ephemeral=True)
@@ -2394,7 +2506,9 @@ class TransferVPSModal(ui.Modal, title='Transfer VPS'):
             except:
                 await interaction.response.send_message("❌ Invalid user ID or mention!", ephemeral=True)
                 return
+
             bot.db.update_vps(token, {"created_by": str(new_owner.id)})
+
             await interaction.response.send_message(f"✅ AstroVoid Host VPS {self.vps_id} has been transferred from {old_owner_name} to {new_owner_name}!", ephemeral=True)
             
             try:
@@ -2410,6 +2524,7 @@ class TransferVPSModal(ui.Modal, title='Transfer VPS'):
                 await new_owner.send(embed=embed)
             except:
                 await interaction.followup.send("Note: Could not send DM to the new owner.", ephemeral=True)
+
         except Exception as e:
             logger.error(f"Error in TransferVPSModal: {e}")
             await interaction.response.send_message(f"❌ Error transferring VPS: {str(e)}", ephemeral=True)
@@ -2425,12 +2540,15 @@ async def manage_vps(ctx, vps_id: str):
         if not vps or (vps["created_by"] != str(ctx.author.id) and not has_admin_role(ctx)):
             await ctx.send("❌ VPS not found or you don't have access to it!", ephemeral=True)
             return
+
         try:
             container = bot.docker_client.containers.get(vps["container_id"])
             container_status = container.status.capitalize()
         except:
             container_status = "Not Found"
+
         status = vps['status'].capitalize()
+
         embed = discord.Embed(title=f"AstroVoid Host VPS Management - {vps_id}", color=discord.Color.blue())
         embed.add_field(name="Status", value=f"{status} (Container: {container_status})", inline=True)
         embed.add_field(name="Memory", value=f"{vps['memory']}GB", inline=True)
@@ -2440,6 +2558,7 @@ async def manage_vps(ctx, vps_id: str):
         embed.add_field(name="Created", value=vps['created_at'], inline=True)
         embed.add_field(name="OS", value=vps.get('os_image', DEFAULT_OS_IMAGE), inline=True)
         embed.add_field(name="Restart Count", value=vps.get('restart_count', 0), inline=True)
+
         view = VPSManagementView(vps_id, vps["container_id"])
         
         message = await ctx.send(embed=embed, view=view)
@@ -2460,15 +2579,20 @@ async def transfer_vps_command(ctx, vps_id: str, new_owner: discord.Member):
         if not vps or vps["created_by"] != str(ctx.author.id):
             await ctx.send("❌ VPS not found or you don't have permission to transfer it!", ephemeral=True)
             return
+
         if bot.db.is_user_banned(new_owner.id):
             await ctx.send("❌ This user is banned!", ephemeral=True)
             return
+
         # Check if new owner already has max VPS
         if bot.db.get_user_vps_count(new_owner.id) >= bot.db.get_setting('max_vps_per_user'):
             await ctx.send(f"❌ {new_owner.mention} already has the maximum number of VPS instances ({bot.db.get_setting('max_vps_per_user')})", ephemeral=True)
             return
+
         bot.db.update_vps(token, {"created_by": str(new_owner.id)})
+
         await ctx.send(f"✅ AstroVoid Host VPS {vps_id} has been transferred from {ctx.author.name} to {new_owner.name}!")
+
         try:
             embed = discord.Embed(title="AstroVoid Host VPS Transferred to You", color=discord.Color.green())
             embed.add_field(name="VPS ID", value=vps_id, inline=True)
@@ -2482,6 +2606,7 @@ async def transfer_vps_command(ctx, vps_id: str, new_owner: discord.Member):
             await new_owner.send(embed=embed)
         except:
             await ctx.send("Note: Could not send DM to the new owner.", ephemeral=True)
+
     except Exception as e:
         logger.error(f"Error in transfer_vps_command: {e}")
         await ctx.send(f"❌ Error transferring VPS: {str(e)}", ephemeral=True)
@@ -2508,12 +2633,5 @@ if __name__ == "__main__":
         bot.run(TOKEN)
     except Exception as e:
         logger.error(f"Bot crashed: {e}")
+
         traceback.print_exc()
-"""
-
-# Save the updated code to a file
-file_path = 'bot_updated.py'
-with open(file_path, 'w') as file:
-    file.write(updated_code_final_corrected)
-
-file_path
