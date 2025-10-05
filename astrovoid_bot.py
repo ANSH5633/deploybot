@@ -100,7 +100,7 @@ RUN systemctl enable ssh && \\
 RUN echo '{welcome_message}' > /etc/motd && \\
     echo 'echo "{welcome_message}"' >> /home/{username}/.bashrc && \\
     echo '{watermark}' > /etc/machine-info && \\
-    echo 'eaglenode-{vps_id}' > /etc/hostname
+    echo 'astrovoidhost-{vps_id}' > /etc/hostname
 
 # Install additional useful packages
 RUN apt-get update && \\
@@ -724,7 +724,7 @@ async def setup_container(container_id, status_msg, memory, username, vps_id=Non
         # Set hostname and watermark
         if not vps_id:
             vps_id = generate_vps_id()
-        hostname_cmd = f"echo 'eaglenode-{vps_id}' > /etc/hostname && hostname eaglenode-{vps_id}"
+        hostname_cmd = f"echo 'astrovoidhost-{vps_id}' > /etc/hostname && hostname astrovoidhost-{vps_id}"
         success, output = await run_docker_command(container_id, ["bash", "-c", hostname_cmd])
         if not success:
             raise Exception(f"Failed to set hostname: {output}")
@@ -799,7 +799,7 @@ async def on_ready():
                     logger.error(f"Error starting container: {e}")
     
     try:
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="EAGLENODE VPS"))
+        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="AstroVoid Host Vps"))
         synced_commands = await bot.tree.sync()
         logger.info(f"Synced {len(synced_commands)} slash commands")
     except Exception as e:
